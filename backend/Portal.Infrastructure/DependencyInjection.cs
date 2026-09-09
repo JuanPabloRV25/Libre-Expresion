@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
+using Portal.Infrastructure.Persistence.Seeding;
 
 namespace Portal.Infrastructure;
 
@@ -27,9 +28,13 @@ public static class DependencyInjection
             .AddIdentityCore<ApplicationUser>(options =>
             {
                 options.Stores.SchemaVersion = IdentitySchemaVersions.Version2;
+                options.User.RequireUniqueEmail = true;
             })
             .AddRoles<ApplicationRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        services.AddSingleton<TimeProvider>(TimeProvider.System);
+        services.AddScoped<DatabaseSeeder>();
 
         return services;
     }
