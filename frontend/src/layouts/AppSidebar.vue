@@ -32,7 +32,7 @@ const active = (to: string) => route.path === to || (to !== '/home' && route.pat
     </nav>
     <RouterLink v-if="auth.currentUser" class="sidebar-account" to="/profile">
       <span class="avatar">{{ auth.currentUser.firstName[0] }}{{ auth.currentUser.lastName[0] }}</span>
-      <span><strong>{{ auth.fullName }}</strong><small>{{ auth.currentUser.demoProfile === 'superadmin' ? 'Superadmin' : auth.currentUser.demoProfile === 'limited' ? 'Administrador limitado' : 'Usuario interno' }}</small></span>
+      <span><strong>{{ auth.fullName }}</strong><small>{{ auth.roleNames }}</small></span>
     </RouterLink>
   </aside>
 </template>

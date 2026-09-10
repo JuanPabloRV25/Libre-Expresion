@@ -13,10 +13,8 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.VITE_DEV_PROXY_TARGET || 'http://portal-api:8080',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },
   }
 })
-

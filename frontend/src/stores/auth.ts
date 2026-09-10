@@ -1,85 +1,65 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ApiError } from '../api/httpClient'
 import { authService } from '../services/authService'
-import { rolesService } from '../services/rolesService'
-import type { PortalUser } from '../types/models'
-
-type StoredSession = { currentUser: PortalUser | null; pendingUser: PortalUser | null; permissionCodes: string[] }
-const emptySession = (): StoredSession => ({ currentUser: null, pendingUser: null, permissionCodes: [] })
+import type { AuthenticatedUser } from '../types/models'
 
 export const useAuthStore = defineStore('auth', () => {
-  const storageKey = 'portal-demo-session'
-  const initialSession = (() => {
-    try {
-      const savedSession = sessionStorage.getItem(storageKey)
-      return savedSession ? JSON.parse(savedSession) as StoredSession : emptySession()
-    } catch {
-      sessionStorage.removeItem(storageKey)
-      return emptySession()
-    }
-  })()
-  const currentUser = ref<PortalUser | null>(initialSession.currentUser)
-  const pendingUser = ref<PortalUser | null>(initialSession.pendingUser)
-  const permissionCodes = ref<string[]>(initialSession.permissionCodes)
+  const currentUser = ref<AuthenticatedUser | null>(null)
+  const initialized = ref(false)
 
   const isAuthenticated = computed(() => currentUser.value !== null)
   const fullName = computed(() => currentUser.value ? `${currentUser.value.firstName} ${currentUser.value.lastName}` : '')
+  const permissionCodes = computed(() => currentUser.value?.permissions ?? [])
+  const roleNames = computed(() => currentUser.value?.roles.join(', ') || 'Usuario interno')
 
-  function persistSession() {
-    const withoutPassword = (user: PortalUser | null) => user ? { ...user, password: '' } : null
-    sessionStorage.setItem(storageKey, JSON.stringify({
-      currentUser: withoutPassword(currentUser.value),
-      pendingUser: withoutPassword(pendingUser.value),
-      permissionCodes: permissionCodes.value,
-    }))
-  }
-
-  async function hydratePermissions(user: PortalUser) {
-    const roles = await rolesService.list()
-    permissionCodes.value = [...new Set(roles.filter((role) => user.roleIds.includes(role.id)).flatMap((role) => role.permissionCodes))]
+  async function initialize() {
+    if (initialized.value) return
+    try {
+      currentUser.value = await authService.me()
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 401) throw error
+      currentUser.value = null
+    } finally {
+      initialized.value = true
+    }
   }
 
   async function login(document: string, password: string) {
     const result = await authService.login(document, password)
-    if (result.status === 'success') {
+    if (result.status === 'success' || result.status === 'first-login') {
       currentUser.value = result.user
-      pendingUser.value = null
-      await hydratePermissions(result.user)
-      persistSession()
-    } else if (result.status === 'first-login') {
-      pendingUser.value = result.user
-      currentUser.value = null
-      permissionCodes.value = []
-      persistSession()
     }
+    initialized.value = true
     return result
   }
 
-  async function completeFirstLogin(currentPassword: string, newPassword: string) {
-    if (!pendingUser.value) return false
-    const success = await authService.changePassword(pendingUser.value.id, currentPassword, newPassword)
-    if (success) {
-      pendingUser.value = null
-      persistSession()
-    }
-    return success
+  async function completeFirstLogin(newPassword: string, confirmation: string) {
+    if (!currentUser.value?.mustChangePassword) return false
+    await authService.changeRequiredPassword(newPassword, confirmation)
+    currentUser.value = null
+    return true
   }
 
-  async function changeOwnPassword(currentPassword: string, newPassword: string) {
+  async function changeOwnPassword(currentPassword: string, newPassword: string, confirmation: string) {
     if (!currentUser.value) return false
-    return authService.changePassword(currentUser.value.id, currentPassword, newPassword)
+    await authService.changePassword(currentPassword, newPassword, confirmation)
+    currentUser.value = await authService.me()
+    return true
   }
 
   function hasPermission(code?: string) {
     return !code || permissionCodes.value.includes(code)
   }
 
-  function logout() {
-    currentUser.value = null
-    pendingUser.value = null
-    permissionCodes.value = []
-    sessionStorage.removeItem(storageKey)
+  async function logout() {
+    try {
+      if (currentUser.value) await authService.logout()
+    } finally {
+      currentUser.value = null
+      initialized.value = true
+    }
   }
 
-  return { currentUser, pendingUser, permissionCodes, isAuthenticated, fullName, login, completeFirstLogin, changeOwnPassword, hasPermission, logout }
+  return { currentUser, initialized, permissionCodes, roleNames, isAuthenticated, fullName, initialize, login, completeFirstLogin, changeOwnPassword, hasPermission, logout }
 })

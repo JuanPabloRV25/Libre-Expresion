@@ -1,28 +1,10 @@
 import { areas, emails, permissions, roles, users } from './data'
-import type { Area, DemoEmail, LoginResult, PortalUser, Role } from '../types/models'
+import type { Area, DemoEmail, PortalUser, Role } from '../types/models'
 
 const wait = async <T>(value: T): Promise<T> => Promise.resolve(value)
 const copyUser = (user: PortalUser): PortalUser => ({ ...user, roleIds: [...user.roleIds] })
 const copyRole = (role: Role): Role => ({ ...role, permissionCodes: [...role.permissionCodes] })
 const copyArea = (area: Area): Area => ({ ...area })
-
-export const mockAuthProvider = {
-  async login(document: string, password: string): Promise<LoginResult> {
-    const user = users.find((item) => item.document === document)
-    if (!user || user.password !== password) return wait({ status: 'invalid' })
-    if (user.status === 'inactive') return wait({ status: 'inactive' })
-    if (user.mustChangePassword) return wait({ status: 'first-login', user: copyUser(user) })
-    return wait({ status: 'success', user: copyUser(user) })
-  },
-  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<boolean> {
-    const user = users.find((item) => item.id === userId)
-    if (!user || user.password !== currentPassword) return wait(false)
-    user.password = newPassword
-    user.mustChangePassword = false
-    emails.unshift({ id: `mail-password-${Date.now()}`, recipientName: `${user.firstName} ${user.lastName}`, recipientEmail: user.email, subject: 'Confirmación de cambio de contraseña - Portal Libre Expresión', type: 'Cambio de contraseña', sentAt: 'Ahora' })
-    return wait(true)
-  },
-}
 
 export const mockUsersProvider = {
   list: async () => wait(users.map(copyUser)),

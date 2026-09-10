@@ -9,9 +9,9 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-function logout() {
-  auth.logout()
-  router.push('/login')
+async function logout() {
+  await auth.logout()
+  await router.push('/login')
 }
 </script>
 
@@ -21,7 +21,7 @@ function logout() {
     <div class="account-menu">
       <button class="account-trigger" type="button" :aria-expanded="open" @click="open = !open">
         <span class="avatar">{{ auth.currentUser?.firstName[0] }}{{ auth.currentUser?.lastName[0] }}</span>
-        <span><strong>{{ auth.fullName }}</strong><small>{{ auth.currentUser?.demoProfile === 'superadmin' ? 'Superadmin' : auth.currentUser?.demoProfile === 'limited' ? 'Administrador limitado' : 'Usuario interno' }}</small></span>
+        <span><strong>{{ auth.fullName }}</strong><small>{{ auth.roleNames }}</small></span>
         <ChevronDown :size="16" />
       </button>
       <div v-if="open" class="account-popover">
@@ -32,4 +32,3 @@ function logout() {
     </div>
   </header>
 </template>
-

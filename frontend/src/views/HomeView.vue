@@ -21,7 +21,7 @@ const cards = computed(() => [
   { label: 'Permisos', description: 'Revisa qué acciones habilita cada permiso.', value: `${auth.permissionCodes.length} disponibles`, to: '/permissions', icon: KeyRound, permission: 'permissions.view' },
 ].filter((card) => auth.hasPermission(card.permission)))
 
-const profileName = computed(() => auth.currentUser?.demoProfile === 'superadmin' ? 'Superadmin' : auth.currentUser?.demoProfile === 'limited' ? 'Administrador limitado' : 'Usuario interno')
+const profileName = computed(() => auth.roleNames)
 </script>
 
 <template>
@@ -41,7 +41,7 @@ const profileName = computed(() => auth.currentUser?.demoProfile === 'superadmin
     </section>
     <div class="dashboard-grid">
       <section class="panel"><p class="eyebrow">RESUMEN DE ACCESO</p><h3>Permisos de tu sesión</h3><div class="metrics"><span><strong>{{ auth.permissionCodes.length }}</strong><small>Permisos habilitados</small></span><span><strong>{{ cards.length }}</strong><small>Opciones del Portal</small></span><span><strong>{{ profileName === 'Superadmin' ? 'Global' : 'Limitado' }}</strong><small>Nivel de acceso</small></span></div></section>
-      <section class="panel"><p class="eyebrow">ACTIVIDAD RECIENTE</p><h3><Activity :size="19" /> Cambios relevantes</h3><ul class="activity-list"><li><b>Usuario creado</b><span>Andrés Pardo · Hoy</span></li><li><b>Contraseña restablecida</b><span>Escenario disponible en Modo demo</span></li><li><b>Usuario inactivado</b><span>Camilo Vargas · 27 ago</span></li></ul></section>
+      <section class="panel"><p class="eyebrow">ACTIVIDAD RECIENTE</p><h3><Activity :size="19" /> Cambios relevantes</h3><ul class="activity-list"><li><b>Usuario creado</b><span>Andrés Pardo · Hoy</span></li><li><b>Contraseña restablecida</b><span>Registro disponible en el prototipo</span></li><li><b>Usuario inactivado</b><span>Camilo Vargas · 27 ago</span></li></ul></section>
     </div>
   </AppLayout>
 </template>

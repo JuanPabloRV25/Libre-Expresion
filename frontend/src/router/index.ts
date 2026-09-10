@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { resolveAuthNavigation } from './authGuard'
 import LoginView from '../views/LoginView.vue'
 import FirstLoginView from '../views/FirstLoginView.vue'
 import PasswordUpdatedView from '../views/PasswordUpdatedView.vue'
@@ -55,12 +56,13 @@ export const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
-  if (to.path === '/first-login' && !auth.pendingUser) return '/login'
-  if (to.meta.requiresAuth && !auth.isAuthenticated) return '/login'
-  if (to.meta.permission && !auth.hasPermission(to.meta.permission)) return '/unauthorized'
-  if (to.path === '/login' && auth.isAuthenticated) return '/home'
+  await auth.initialize()
   document.title = `${to.meta.title ?? 'Portal'} · Portal Libre Expresión`
-  return true
+  return resolveAuthNavigation(to.path, to.meta, {
+    isAuthenticated: auth.isAuthenticated,
+    mustChangePassword: auth.currentUser?.mustChangePassword ?? false,
+    hasPermission: auth.hasPermission,
+  })
 })

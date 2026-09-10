@@ -37,6 +37,24 @@ export interface PortalUser {
   demoProfile?: 'superadmin' | 'limited' | 'standard' | 'first-login' | 'inactive'
 }
 
+export interface AuthenticatedUserArea {
+  id: string
+  name: string
+}
+
+export interface AuthenticatedUser {
+  id: string
+  documentNumber: string
+  firstName: string
+  lastName: string
+  email: string
+  area: AuthenticatedUserArea | null
+  roles: string[]
+  permissions: string[]
+  isActive: boolean
+  mustChangePassword: boolean
+}
+
 export interface DemoEmail {
   id: string
   recipientName: string
@@ -48,7 +66,8 @@ export interface DemoEmail {
 }
 
 export type LoginResult =
-  | { status: 'success'; user: PortalUser }
-  | { status: 'first-login'; user: PortalUser }
+  | { status: 'success'; user: AuthenticatedUser }
+  | { status: 'first-login'; user: AuthenticatedUser }
   | { status: 'inactive' }
+  | { status: 'locked' }
   | { status: 'invalid' }
