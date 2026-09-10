@@ -14,6 +14,7 @@ import RoleFormView from '../views/RoleFormView.vue'
 import RoleDetailView from '../views/RoleDetailView.vue'
 import RolePermissionsView from '../views/RolePermissionsView.vue'
 import PermissionsView from '../views/PermissionsView.vue'
+import AuditView from '../views/AuditView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ChangePasswordView from '../views/ChangePasswordView.vue'
 import UnauthorizedView from '../views/UnauthorizedView.vue'
@@ -47,6 +48,7 @@ export const router = createRouter({
     { path: '/roles/:id/edit', component: RoleFormView, meta: { requiresAuth: true, permission: 'roles.edit', title: 'Editar rol' } },
     { path: '/roles/:id/permissions', component: RolePermissionsView, meta: { requiresAuth: true, permission: 'roles.assign_permissions', title: 'Matriz de permisos' } },
     { path: '/permissions', component: PermissionsView, meta: { requiresAuth: true, permission: 'permissions.view', title: 'Permisos' } },
+    { path: '/audit', component: AuditView, meta: { requiresAuth: true, permission: 'audit.view', title: 'Auditoría' } },
     { path: '/profile', component: ProfileView, meta: { requiresAuth: true, title: 'Mi perfil' } },
     { path: '/profile/change-password', component: ChangePasswordView, meta: { requiresAuth: true, title: 'Cambiar contraseña' } },
     { path: '/demo/emails', component: EmailsView, meta: { requiresAuth: true, permission: 'users.view', title: 'Correos simulados' } },

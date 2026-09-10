@@ -1,20 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Grid2X2, Users, ShieldCheck, KeyRound, Building2, Mail } from '@lucide/vue'
+import { Grid2X2, Users, ShieldCheck, KeyRound, Building2, Mail, ScrollText } from '@lucide/vue'
 import BrandMark from '../components/BrandMark.vue'
 import { useAuthStore } from '../stores/auth'
+import { visibleSidebarItems, type SidebarIconName } from '../navigation/sidebarItems'
 
 const auth = useAuthStore()
 const route = useRoute()
-const items = computed(() => [
-  { label: 'Inicio', to: '/home', icon: Grid2X2 },
-  { label: 'Usuarios', to: '/users', icon: Users, permission: 'users.view' },
-  { label: 'Áreas', to: '/areas', icon: Building2, permission: 'areas.view' },
-  { label: 'Roles', to: '/roles', icon: ShieldCheck, permission: 'roles.view' },
-  { label: 'Permisos', to: '/permissions', icon: KeyRound, permission: 'permissions.view' },
-  { label: 'Correos simulados', to: '/demo/emails', icon: Mail, permission: 'users.view', demo: true },
-].filter((item) => auth.hasPermission(item.permission)))
+const icons: Record<SidebarIconName, typeof Grid2X2> = {
+  home: Grid2X2,
+  users: Users,
+  areas: Building2,
+  roles: ShieldCheck,
+  permissions: KeyRound,
+  audit: ScrollText,
+  emails: Mail,
+}
+const items = computed(() => visibleSidebarItems(auth.hasPermission)
+  .map((item) => ({ ...item, icon: icons[item.icon] })))
 
 const active = (to: string) => route.path === to || (to !== '/home' && route.path.startsWith(`${to}/`))
 </script>

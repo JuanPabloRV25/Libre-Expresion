@@ -24,4 +24,11 @@ describe('authentication navigation guard', () => {
   it('allows a route backed by an effective permission', () => {
     expect(resolveAuthNavigation('/users', { requiresAuth: true, permission: 'users.view' }, state())).toBe(true)
   })
+
+  it('protects direct audit navigation with audit.view', () => {
+    expect(resolveAuthNavigation('/audit', { requiresAuth: true, permission: 'audit.view' }, state())).toBe('/unauthorized')
+    expect(resolveAuthNavigation('/audit', { requiresAuth: true, permission: 'audit.view' }, state({
+      hasPermission: (code?: string) => !code || code === 'audit.view',
+    }))).toBe(true)
+  })
 })

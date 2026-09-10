@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Portal.Api.Authentication;
 using Portal.Api.Areas;
+using Portal.Api.Audit;
 using Portal.Api.Authorization;
 using Portal.Api.Permissions;
 using Portal.Api.Roles;
@@ -53,6 +54,7 @@ app.UseAntiforgery();
 
 app.MapAuthEndpoints();
 app.MapAreaEndpoints();
+app.MapAuditEndpoints();
 app.MapPermissionEndpoints();
 app.MapRoleEndpoints();
 app.MapUserEndpoints();
