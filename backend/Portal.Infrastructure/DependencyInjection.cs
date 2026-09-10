@@ -5,6 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Application.Identity;
+using Portal.Application.Areas;
+using Portal.Application.Permissions;
+using Portal.Application.Roles;
+using Portal.Application.Users;
+using Portal.Infrastructure.Areas;
+using Portal.Infrastructure.Permissions;
+using Portal.Infrastructure.Roles;
+using Portal.Infrastructure.Users;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -65,6 +73,10 @@ public static class DependencyInjection
         services.AddScoped<PortalCookieAuthenticationEvents>();
         services.AddScoped<IPortalAuthenticationService, PortalAuthenticationService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IAreaService, AreaService>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<IUserService, UserService>();
 
         return services;
     }

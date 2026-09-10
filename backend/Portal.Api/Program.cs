@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Portal.Api.Authentication;
+using Portal.Api.Areas;
 using Portal.Api.Authorization;
+using Portal.Api.Permissions;
+using Portal.Api.Roles;
+using Portal.Api.Users;
 using Portal.Domain.Permissions;
 using Portal.Infrastructure;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -48,6 +52,10 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapAuthEndpoints();
+app.MapAreaEndpoints();
+app.MapPermissionEndpoints();
+app.MapRoleEndpoints();
+app.MapUserEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }))
     .WithName("Health");

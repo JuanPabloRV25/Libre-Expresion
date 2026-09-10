@@ -10,8 +10,12 @@ const auth = useAuthStore()
 const userCount = ref(0)
 const roleCount = ref(0)
 onMounted(async () => {
-  userCount.value = (await usersService.list()).filter((user) => user.status === 'active').length
-  roleCount.value = (await rolesService.list()).length
+  if (auth.hasPermission('users.view')) {
+    userCount.value = (await usersService.list({ status: 'active' })).length
+  }
+  if (auth.hasPermission('roles.view')) {
+    roleCount.value = (await rolesService.list()).length
+  }
 })
 
 const cards = computed(() => [

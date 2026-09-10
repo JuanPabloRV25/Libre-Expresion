@@ -47,9 +47,21 @@ export function clearAntiforgeryToken() {
 }
 
 export async function postJson<T>(path: string, body: unknown = {}): Promise<T> {
+  return mutateJson<T>('POST', path, body)
+}
+
+export async function putJson<T>(path: string, body: unknown = {}): Promise<T> {
+  return mutateJson<T>('PUT', path, body)
+}
+
+export async function patchJson<T>(path: string, body: unknown = {}): Promise<T> {
+  return mutateJson<T>('PATCH', path, body)
+}
+
+async function mutateJson<T>(method: 'POST' | 'PUT' | 'PATCH', path: string, body: unknown): Promise<T> {
   const token = await getAntiforgeryToken()
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
+    method,
     credentials: 'include',
     headers: {
       Accept: 'application/json',

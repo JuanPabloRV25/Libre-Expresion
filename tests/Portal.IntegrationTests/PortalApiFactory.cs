@@ -19,6 +19,7 @@ public sealed class PortalApiFactory : WebApplicationFactory<Program>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["DATABASE_SEEDING_ENABLED"] = "false",
+                ["ConnectionStrings:PortalDb"] = string.Empty,
             }));
         builder.ConfigureServices(services =>
         {

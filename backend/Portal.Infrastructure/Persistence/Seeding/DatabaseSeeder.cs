@@ -285,22 +285,14 @@ public sealed class DatabaseSeeder(
 
         // Controlled bootstrap exception: Identity hashes the document-based temporary
         // credential without weakening the validators used for definitive passwords.
-        user.PasswordHash = passwordHasher.HashPassword(user, document);
+        TemporaryCredential.SetDocumentBasedPassword(
+            user,
+            document,
+            passwordHasher);
 
         EnsureIdentitySucceeded(
             await userManager.CreateAsync(user),
             "create the initial Superadmin user");
-
-        var verificationResult = passwordHasher.VerifyHashedPassword(
-            user,
-            user.PasswordHash!,
-            document);
-
-        if (verificationResult == PasswordVerificationResult.Failed)
-        {
-            throw new InvalidOperationException(
-                "Identity could not verify the temporary Superadmin credential hash.");
-        }
 
         return user;
     }

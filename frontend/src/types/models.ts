@@ -30,7 +30,7 @@ export interface PortalUser {
   lastName: string
   email: string
   areaId: number
-  roleIds: number[]
+  roleIds: string[]
   status: UserStatus
   password: string
   mustChangePassword: boolean
