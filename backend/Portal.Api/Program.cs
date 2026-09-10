@@ -1,5 +1,7 @@
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Portal.Api.Authentication;
 using Portal.Api.Areas;
 using Portal.Api.Audit;
@@ -16,6 +18,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(
     builder.Configuration,
     builder.Environment.IsProduction());
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownIPNetworks.Add(
+        new System.Net.IPNetwork(IPAddress.Parse("172.29.10.0"), 24));
+});
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-XSRF-TOKEN";
@@ -42,11 +52,28 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler
 
 var app = builder.Build();
 
-if (DatabaseSeeding.IsEnabled(builder.Configuration))
+var portalOperation = builder.Configuration["PORTAL_OPERATION"];
+var seedingEnabled = DatabaseSeeding.IsEnabled(builder.Configuration);
+
+if (string.Equals(portalOperation, "provision", StringComparison.OrdinalIgnoreCase))
 {
+    if (!seedingEnabled)
+    {
+        throw new InvalidOperationException(
+            "Explicit provisioning requires DATABASE_SEEDING_ENABLED=true.");
+    }
+
     await app.Services.SeedDatabaseAsync(builder.Configuration);
+    return;
 }
 
+if (seedingEnabled)
+{
+    throw new InvalidOperationException(
+        "Database seeding is disabled during normal API startup. Use the explicit provisioning operation.");
+}
+
+app.UseForwardedHeaders();
 app.UseAuthentication();
 app.UseMiddleware<RequiredPasswordChangeMiddleware>();
 app.UseAuthorization();
