@@ -31,3 +31,9 @@ Fase 1:
 - `backend/` — Backend ASP.NET Core.
 - `tests/` — Pruebas automatizadas.
 - `deploy/` — Configuración de despliegue.
+
+## Deployment DEV
+
+El procedimiento reproducible con Docker Compose, las operaciones one-shot de
+migración/provisión y el acceso mediante túnel SSH están documentados en
+[`deploy/README.md`](deploy/README.md).
