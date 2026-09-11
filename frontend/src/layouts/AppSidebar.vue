@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Grid2X2, Users, ShieldCheck, KeyRound, Building2, Mail, ScrollText } from '@lucide/vue'
+import { Grid2X2, Users, ShieldCheck, KeyRound, Building2, ScrollText } from '@lucide/vue'
 import BrandMark from '../components/BrandMark.vue'
 import { useAuthStore } from '../stores/auth'
 import { visibleSidebarItems, type SidebarIconName } from '../navigation/sidebarItems'
@@ -15,7 +15,6 @@ const icons: Record<SidebarIconName, typeof Grid2X2> = {
   roles: ShieldCheck,
   permissions: KeyRound,
   audit: ScrollText,
-  emails: Mail,
 }
 const items = computed(() => visibleSidebarItems(auth.hasPermission)
   .map((item) => ({ ...item, icon: icons[item.icon] })))
@@ -31,7 +30,6 @@ const active = (to: string) => route.path === to || (to !== '/home' && route.pat
       <RouterLink v-for="item in items" :key="item.to" :to="item.to" :class="{ active: active(item.to) }">
         <component :is="item.icon" :size="20" stroke-width="1.8" />
         <span>{{ item.label }}</span>
-        <small v-if="item.demo">DEMO</small>
       </RouterLink>
     </nav>
     <RouterLink v-if="auth.currentUser" class="sidebar-account" to="/profile">

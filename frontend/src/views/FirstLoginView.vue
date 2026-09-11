@@ -15,11 +15,12 @@ async function submit() {
   if (newPassword.value.length < 8) return void (error.value = 'La nueva contraseña debe tener al menos 8 caracteres.')
   if (newPassword.value !== confirmation.value) return void (error.value = 'La confirmación no coincide con la nueva contraseña.')
   try {
-    if (!(await auth.completeFirstLogin(newPassword.value, confirmation.value))) return void (error.value = 'No existe una sesión de primer ingreso activa.')
+    const notificationStatus = await auth.completeFirstLogin(newPassword.value, confirmation.value)
+    if (!notificationStatus) return void (error.value = 'No existe una sesión de primer ingreso activa.')
+    await router.push({ path: '/password-updated', query: { notification: notificationStatus } })
   } catch {
     return void (error.value = 'No fue posible actualizar la contraseña. Verifica la política de seguridad.')
   }
-  await router.push('/password-updated')
 }
 </script>
 

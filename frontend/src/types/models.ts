@@ -55,16 +55,6 @@ export interface AuthenticatedUser {
   mustChangePassword: boolean
 }
 
-export interface DemoEmail {
-  id: string
-  recipientName: string
-  recipientEmail: string
-  subject: string
-  type: 'Creación de usuario' | 'Restablecimiento' | 'Cambio de contraseña'
-  sentAt: string
-  document?: string
-}
-
 export type LoginResult =
   | { status: 'success'; user: AuthenticatedUser }
   | { status: 'first-login'; user: AuthenticatedUser }

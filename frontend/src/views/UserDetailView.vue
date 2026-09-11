@@ -6,6 +6,7 @@ import StatusBadge from '../components/StatusBadge.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import { ApiError } from '../api/httpClient'
 import { usersService, type ApiUser } from '../services/usersService'
+import { isNotificationStatus, passwordResetNotificationMessage, userCreatedNotificationMessage } from '../services/notificationMessages'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
@@ -25,15 +26,20 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  if (route.query.operation === 'created' && isNotificationStatus(route.query.notification)) {
+    notice.value = userCreatedNotificationMessage(route.query.notification)
+  }
+})
 
 async function resetPassword() {
   if (!user.value) return
   errorMessage.value = ''
   try {
-    await usersService.resetPassword(user.value.id)
+    const result = await usersService.resetPassword(user.value.id)
     await load()
-    notice.value = 'Contraseña restablecida. La notificación corporativa está pendiente de integración.'
+    notice.value = passwordResetNotificationMessage(result.notificationStatus)
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : 'No fue posible restablecer la contraseña.'
   } finally {
@@ -73,7 +79,7 @@ async function toggleStatus() {
       <section class="panel"><p class="eyebrow">INFORMACIÓN</p><div class="stack-list"><div><strong>Documento</strong><small>{{ user.documentNumber }}</small></div><div><strong>Área</strong><small>{{ user.area?.name ?? 'Sin área' }}</small></div><div><strong>Código de asesor</strong><small>{{ user.advisorCode ?? 'No aplica' }}</small></div><div><strong>Próximo ingreso</strong><small>{{ user.mustChangePassword ? 'Requiere cambio de contraseña' : 'Acceso habitual' }}</small></div></div></section>
       <section class="panel"><p class="eyebrow">ROLES ASIGNADOS</p><h3>{{ user.roles.length }} roles</h3><div class="stack-list"><div v-for="role in user.roles" :key="role.id"><strong>{{ role.name }}</strong><small>{{ role.isActive ? 'Activo' : 'Inactivo' }}</small></div><p v-if="!user.roles.length">Este usuario no tiene roles asignados.</p></div></section>
     </div>
-    <ConfirmDialog :open="resetOpen" title="Restablecer contraseña" description="La contraseña temporal volverá a ser el documento. La notificación por correo aún no está integrada." confirm-label="Restablecer" @close="resetOpen = false" @confirm="resetPassword" />
+    <ConfirmDialog :open="resetOpen" title="Restablecer contraseña" description="La contraseña temporal volverá a ser el documento y se enviará una notificación al correo registrado." confirm-label="Restablecer" @close="resetOpen = false" @confirm="resetPassword" />
     <ConfirmDialog :open="statusOpen" :title="`${user?.isActive ? 'Inactivar' : 'Activar'} usuario`" :description="`Confirma el cambio de estado para ${fullName}.`" confirm-label="Confirmar" @close="statusOpen = false" @confirm="toggleStatus" />
   </AppLayout>
 </template>

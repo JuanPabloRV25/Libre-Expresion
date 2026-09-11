@@ -1,5 +1,6 @@
 import { getJson, patchJson, postJson, putJson } from '../api/httpClient'
 import type { UserStatus } from '../types/models'
+import type { NotificationStatus } from './notificationMessages'
 
 export interface ApiUserArea {
   id: string
@@ -57,12 +58,12 @@ export interface UserListFilters {
 
 export interface UserCreatedResponse {
   user: ApiUser
-  notificationStatus: 'pending_integration'
+  notificationStatus: NotificationStatus
 }
 
 export interface PasswordResetResponse {
   passwordReset: boolean
-  notificationStatus: 'pending_integration'
+  notificationStatus: NotificationStatus
 }
 
 function list(filters: UserListFilters = {}): Promise<ApiUser[]> {

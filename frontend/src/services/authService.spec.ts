@@ -60,15 +60,23 @@ describe('authService real API contract', () => {
   it('sends the mandatory password change without the temporary password', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ token: 'csrf-token' }))
-      .mockResolvedValueOnce(jsonResponse({ succeeded: true }))
+      .mockResolvedValueOnce(jsonResponse({ succeeded: true, notificationStatus: 'sent' }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await authService.changeRequiredPassword('NewSecret!1', 'NewSecret!1')
+    await expect(authService.changeRequiredPassword('NewSecret!1', 'NewSecret!1')).resolves.toBe('sent')
 
     const request = fetchMock.mock.calls[1]?.[1] as RequestInit
     expect(JSON.parse(request.body as string)).toEqual({
       newPassword: 'NewSecret!1',
       confirmPassword: 'NewSecret!1',
     })
+  })
+
+  it('returns failed when a completed password change could not be notified', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ token: 'csrf-token' }))
+      .mockResolvedValueOnce(jsonResponse({ succeeded: true, notificationStatus: 'failed' })))
+
+    await expect(authService.changePassword('Current!1', 'NewSecret!1', 'NewSecret!1')).resolves.toBe('failed')
   })
 })

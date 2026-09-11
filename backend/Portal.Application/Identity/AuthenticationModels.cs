@@ -24,4 +24,6 @@ public enum PasswordChangeStatus
     InvalidPassword,
 }
 
-public sealed record PasswordChangeResult(PasswordChangeStatus Status);
+public sealed record PasswordChangeResult(
+    PasswordChangeStatus Status,
+    string? NotificationStatus = null);

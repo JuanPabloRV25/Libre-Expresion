@@ -36,16 +36,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function completeFirstLogin(newPassword: string, confirmation: string) {
     if (!currentUser.value?.mustChangePassword) return false
-    await authService.changeRequiredPassword(newPassword, confirmation)
+    const notificationStatus = await authService.changeRequiredPassword(newPassword, confirmation)
     currentUser.value = null
-    return true
+    return notificationStatus
   }
 
   async function changeOwnPassword(currentPassword: string, newPassword: string, confirmation: string) {
     if (!currentUser.value) return false
-    await authService.changePassword(currentPassword, newPassword, confirmation)
+    const notificationStatus = await authService.changePassword(currentPassword, newPassword, confirmation)
     currentUser.value = await authService.me()
-    return true
+    return notificationStatus
   }
 
   function hasPermission(code?: string) {

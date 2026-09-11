@@ -1,5 +1,5 @@
-import { areas, emails } from './data'
-import type { Area, DemoEmail } from '../types/models'
+import { areas } from './data'
+import type { Area } from '../types/models'
 
 const wait = async <T>(value: T): Promise<T> => Promise.resolve(value)
 const copyArea = (area: Area): Area => ({ ...area })
@@ -23,9 +23,4 @@ export const mockAreasProvider = {
     area.status = area.status === 'active' ? 'inactive' : 'active'
     return wait(copyArea(area))
   },
-}
-
-export const mockEmailsProvider = {
-  list: async (): Promise<DemoEmail[]> => wait(emails.map((email) => ({ ...email }))),
-  get: async (id: string) => wait(emails.find((email) => email.id === id)).then((email) => email ? { ...email } : undefined),
 }

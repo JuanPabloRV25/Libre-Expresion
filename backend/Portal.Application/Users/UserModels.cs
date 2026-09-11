@@ -57,4 +57,5 @@ public sealed record UserOperationResult(
     UserOperationStatus Status,
     UserDto? User = null,
     string? ErrorCode = null,
-    string? ErrorMessage = null);
+    string? ErrorMessage = null,
+    string? NotificationStatus = null);

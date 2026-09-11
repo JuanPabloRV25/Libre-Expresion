@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest'
+import {
+  passwordChangedNotificationMessage,
+  passwordResetNotificationMessage,
+  userCreatedNotificationMessage,
+} from './notificationMessages'
+
+describe('notification result messages', () => {
+  it('maps sent and failed user creation results', () => {
+    expect(userCreatedNotificationMessage('sent')).toBe('El usuario fue creado exitosamente. Se envió la información de acceso al correo registrado.')
+    expect(userCreatedNotificationMessage('failed')).toBe('El usuario fue creado exitosamente, pero no fue posible enviar la notificación.')
+  })
+
+  it('maps sent and failed password reset results', () => {
+    expect(passwordResetNotificationMessage('sent')).toBe('La contraseña fue restablecida exitosamente. Se envió la información de acceso al correo registrado.')
+    expect(passwordResetNotificationMessage('failed')).toBe('La contraseña fue restablecida, pero no fue posible enviar la notificación.')
+  })
+
+  it('maps sent and failed password change results', () => {
+    expect(passwordChangedNotificationMessage('sent')).toBe('Su contraseña fue actualizada correctamente. Se envió una notificación a su correo electrónico.')
+    expect(passwordChangedNotificationMessage('failed')).toBe('Su contraseña fue actualizada correctamente, pero no fue posible enviar la notificación.')
+  })
+})

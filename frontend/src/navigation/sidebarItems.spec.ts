@@ -10,4 +10,10 @@ describe('sidebar permission navigation', () => {
     expect(withAudit.map((item) => item.to)).toContain('/audit')
     expect(withAudit.find((item) => item.to === '/audit')?.label).toBe('Auditoría')
   })
+
+  it('does not expose the removed simulated email module', () => {
+    const items = visibleSidebarItems(() => true)
+    expect(items.map((item) => item.to)).not.toContain('/demo/emails')
+    expect(items.map((item) => item.label)).not.toContain('Correos simulados')
+  })
 })

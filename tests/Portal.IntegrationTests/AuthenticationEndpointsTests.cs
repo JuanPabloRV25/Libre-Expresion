@@ -78,6 +78,12 @@ public sealed class AuthenticationEndpointsTests
             confirmPassword = DefinitivePassword,
         });
         Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        Assert.Equal(
+            "sent",
+            (await changed.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("notificationStatus")
+                .GetString());
+        Assert.Single(factory.EmailSender.Messages);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await LoginAsync(client, credentials.Document, credentials.Password)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await LoginAsync(client, credentials.Document, DefinitivePassword)).StatusCode);
@@ -126,6 +132,11 @@ public sealed class AuthenticationEndpointsTests
             confirmPassword = DefinitivePassword,
         });
         Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        Assert.Equal(
+            "sent",
+            (await changed.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("notificationStatus")
+                .GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
 
         var logout = await PostWithCsrfAsync(client, "/api/auth/logout", new { });
@@ -133,6 +144,45 @@ public sealed class AuthenticationEndpointsTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await LoginAsync(client, credentials.Document, credentials.Password)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await LoginAsync(client, credentials.Document, DefinitivePassword)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Email_failure_does_not_rollback_a_personal_password_change()
+    {
+        await using var factory = new PortalApiFactory();
+        var credentials = await SeedSuperadminAsync(factory, mustChangePassword: false);
+        using var client = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(client, credentials.Document, credentials.Password)).StatusCode);
+        factory.EmailSender.ShouldFail = true;
+
+        var changed = await PostWithCsrfAsync(client, "/api/auth/change-password", new
+        {
+            currentPassword = credentials.Password,
+            newPassword = DefinitivePassword,
+            confirmPassword = DefinitivePassword,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        Assert.Equal(
+            "failed",
+            (await changed.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("notificationStatus")
+                .GetString());
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            (await LoginAsync(client, credentials.Document, credentials.Password)).StatusCode);
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(client, credentials.Document, DefinitivePassword)).StatusCode);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.Contains(
+            await context.AuditEvents.ToArrayAsync(),
+            audit => audit.Action == "notification.password_changed.failed"
+                && audit.Result == "Failed");
     }
 
     [Fact]

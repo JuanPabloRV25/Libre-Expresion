@@ -57,13 +57,13 @@ describe('authentication store', () => {
   it('keeps mandatory-login identity only in memory and changes without temporary password', async () => {
     const temporaryUser = { ...user, permissions: [], mustChangePassword: true }
     service.login.mockResolvedValue({ status: 'first-login', user: temporaryUser })
-    service.changeRequiredPassword.mockResolvedValue({ succeeded: true })
+    service.changeRequiredPassword.mockResolvedValue('sent')
     const auth = useAuthStore()
 
     await auth.login(user.documentNumber, 'Temporary!1')
     expect(auth.currentUser?.mustChangePassword).toBe(true)
     expect(auth.permissionCodes).toEqual([])
-    await expect(auth.completeFirstLogin('Definitive!1', 'Definitive!1')).resolves.toBe(true)
+    await expect(auth.completeFirstLogin('Definitive!1', 'Definitive!1')).resolves.toBe('sent')
     expect(service.changeRequiredPassword).toHaveBeenCalledWith('Definitive!1', 'Definitive!1')
     expect(auth.currentUser).toBeNull()
   })

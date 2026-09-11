@@ -99,7 +99,7 @@ public static class UserEndpoints
                 $"/api/users/{result.User!.Id}",
                 new UserCreatedResponse(
                     result.User,
-                    "pending_integration"))
+                    result.NotificationStatus!))
             : MapError(result);
     }
 
@@ -170,7 +170,7 @@ public static class UserEndpoints
         return result.Status == UserOperationStatus.Success
             ? Results.Ok(new PasswordResetResponse(
                 PasswordReset: true,
-                NotificationStatus: "pending_integration"))
+                NotificationStatus: result.NotificationStatus!))
             : MapError(result);
     }
 

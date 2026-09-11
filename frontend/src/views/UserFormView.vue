@@ -75,7 +75,10 @@ async function submit() {
       roleIds: form.roleIds,
       isActive: form.isActive,
     })
-    await router.push(`/users/${created.user.id}`)
+    await router.push({
+      path: `/users/${created.user.id}`,
+      query: { operation: 'created', notification: created.notificationStatus },
+    })
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : 'No fue posible guardar el usuario.'
   } finally {

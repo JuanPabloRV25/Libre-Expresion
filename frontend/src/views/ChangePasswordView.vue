@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import AppLayout from '../layouts/AppLayout.vue'
 import PageHeader from '../components/PageHeader.vue'
 import { useAuthStore } from '../stores/auth'
+import { passwordChangedNotificationMessage } from '../services/notificationMessages'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -17,11 +18,12 @@ async function submit() {
   if (newPassword.value.length < 8) return void (error.value = 'La nueva contraseña debe tener al menos 8 caracteres.')
   if (newPassword.value !== confirmation.value) return void (error.value = 'La confirmación no coincide.')
   try {
-    if (!(await auth.changeOwnPassword(currentPassword.value, newPassword.value, confirmation.value))) return void (error.value = 'No existe una sesión activa.')
+    const notificationStatus = await auth.changeOwnPassword(currentPassword.value, newPassword.value, confirmation.value)
+    if (!notificationStatus) return void (error.value = 'No existe una sesión activa.')
+    success.value = passwordChangedNotificationMessage(notificationStatus)
   } catch {
     return void (error.value = 'No fue posible cambiar la contraseña. Verifica la contraseña actual y la política de seguridad.')
   }
-  success.value = 'Contraseña actualizada. La sesión permanece abierta.'
   currentPassword.value = ''; newPassword.value = ''; confirmation.value = ''
 }
 </script>

@@ -1,7 +1,10 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Portal.Application.Identity;
+using Portal.Application.Notifications;
+using Portal.Domain.Auditing;
 using Portal.Infrastructure.Persistence;
 
 namespace Portal.Infrastructure.Identity;
@@ -10,6 +13,7 @@ public sealed class PortalAuthenticationService(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext dbContext,
+    INotificationService notificationService,
     TimeProvider timeProvider) : IPortalAuthenticationService
 {
     public async Task<PortalLoginResult> LoginAsync(
@@ -109,7 +113,11 @@ public sealed class PortalAuthenticationService(
 
         await signInManager.SignOutAsync();
 
-        return new PasswordChangeResult(PasswordChangeStatus.Succeeded);
+        var notification = await NotifyPasswordChangedAsync(user);
+
+        return new PasswordChangeResult(
+            PasswordChangeStatus.Succeeded,
+            notification.Status);
     }
 
     public async Task<PasswordChangeResult> ChangePasswordAsync(
@@ -170,10 +178,50 @@ public sealed class PortalAuthenticationService(
 
         await signInManager.RefreshSignInAsync(user);
 
-        return new PasswordChangeResult(PasswordChangeStatus.Succeeded);
+        var notification = await NotifyPasswordChangedAsync(user);
+
+        return new PasswordChangeResult(
+            PasswordChangeStatus.Succeeded,
+            notification.Status);
     }
 
     public Task SignOutAsync() => signInManager.SignOutAsync();
+
+    private async Task<NotificationResult> NotifyPasswordChangedAsync(
+        ApplicationUser user)
+    {
+        var occurredAt = timeProvider.GetUtcNow();
+        var notification = await notificationService.NotifyPasswordChangedAsync(
+            new NotificationRecipient(
+                user.Id,
+                user.Email ?? throw new InvalidOperationException("The user does not have an email address."),
+                user.FirstName,
+                user.LastName,
+                user.UserName ?? throw new InvalidOperationException("The user does not have a document number.")),
+            occurredAt,
+            CancellationToken.None);
+        var sent = notification.Status == NotificationStatuses.Sent;
+        dbContext.AuditEvents.Add(new AuditEvent
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = user.Id,
+            Action = sent
+                ? NotificationAuditActions.PasswordChangedSent
+                : NotificationAuditActions.PasswordChangedFailed,
+            EntityType = "User",
+            EntityId = user.Id.ToString(),
+            Result = sent ? "Success" : "Failed",
+            OccurredAt = occurredAt,
+            Metadata = JsonSerializer.Serialize(new
+            {
+                NotificationType = "password_changed",
+                DeliveryResult = notification.Status,
+                TargetUserId = user.Id,
+            }),
+        });
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+        return notification;
+    }
 
     private async Task<IDbContextTransaction?> BeginTransactionAsync(
         CancellationToken cancellationToken)

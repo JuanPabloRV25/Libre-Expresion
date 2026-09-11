@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Portal.Application.Identity;
+using Portal.Application.Notifications;
 using Portal.Application.Users;
 using Portal.Domain.Auditing;
 using Portal.Infrastructure.Identity;
@@ -18,6 +19,7 @@ public sealed class UserService(
     UserManager<ApplicationUser> userManager,
     IPasswordHasher<ApplicationUser> passwordHasher,
     ICurrentUserService currentUserService,
+    INotificationService notificationService,
     TimeProvider timeProvider) : IUserService
 {
     public async Task<IReadOnlyList<UserDto>> ListAsync(
@@ -164,15 +166,25 @@ public sealed class UserService(
             {
                 RoleIds = roleValidation.Roles!.Select(role => role.Id),
                 user.AreaId,
-                NotificationStatus = "pending_integration",
             },
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await CommitAsync(transaction, cancellationToken);
 
+        var notification = await notificationService.NotifyUserCreatedAsync(
+            ToNotificationRecipient(user),
+            CancellationToken.None);
+        await AddNotificationAuditAsync(
+            user.Id,
+            "user_created",
+            notification,
+            NotificationAuditActions.UserCreatedSent,
+            NotificationAuditActions.UserCreatedFailed);
+
         return new UserOperationResult(
             UserOperationStatus.Success,
-            (await BuildDtosAsync([user], cancellationToken)).Single());
+            (await BuildDtosAsync([user], CancellationToken.None)).Single(),
+            NotificationStatus: notification.Status);
     }
 
     public async Task<UserOperationResult> UpdateAsync(
@@ -406,14 +418,25 @@ public sealed class UserService(
         await AddAuditAsync(
             "user.password_reset",
             user.Id,
-            new { NotificationStatus = "pending_integration" },
+            new { },
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await CommitAsync(transaction, cancellationToken);
 
+        var notification = await notificationService.NotifyPasswordResetAsync(
+            ToNotificationRecipient(user),
+            CancellationToken.None);
+        await AddNotificationAuditAsync(
+            user.Id,
+            "password_reset",
+            notification,
+            NotificationAuditActions.PasswordResetSent,
+            NotificationAuditActions.PasswordResetFailed);
+
         return new UserOperationResult(
             UserOperationStatus.Success,
-            (await BuildDtosAsync([user], cancellationToken)).Single());
+            (await BuildDtosAsync([user], CancellationToken.None)).Single(),
+            NotificationStatus: notification.Status);
     }
 
     private async Task<IReadOnlyList<UserDto>> BuildDtosAsync(
@@ -587,6 +610,44 @@ public sealed class UserService(
             Metadata = JsonSerializer.Serialize(metadata),
         });
     }
+
+    private async Task AddNotificationAuditAsync(
+        Guid userId,
+        string notificationType,
+        NotificationResult notification,
+        string sentAction,
+        string failedAction)
+    {
+        var action = notification.Status == NotificationStatuses.Sent
+            ? sentAction
+            : failedAction;
+        await AddAuditAsync(
+            action,
+            userId,
+            new
+            {
+                NotificationType = notificationType,
+                DeliveryResult = notification.Status,
+                TargetUserId = userId,
+            },
+            CancellationToken.None);
+        var auditEvent = dbContext.ChangeTracker.Entries<AuditEvent>()
+            .Where(entry => entry.State == EntityState.Added)
+            .Select(entry => entry.Entity)
+            .Last(audit => audit.Action == action && audit.EntityId == userId.ToString());
+        auditEvent.Result = notification.Status == NotificationStatuses.Sent
+            ? "Success"
+            : "Failed";
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+    }
+
+    private static NotificationRecipient ToNotificationRecipient(
+        ApplicationUser user) => new(
+            user.Id,
+            user.Email ?? throw new InvalidOperationException("The user does not have an email address."),
+            user.FirstName,
+            user.LastName,
+            user.UserName ?? throw new InvalidOperationException("The user does not have a document number."));
 
     private async Task<IDbContextTransaction?> BeginTransactionAsync(
         IsolationLevel isolationLevel,

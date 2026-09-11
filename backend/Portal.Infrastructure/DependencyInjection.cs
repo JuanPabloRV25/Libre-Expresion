@@ -8,6 +8,7 @@ using Portal.Application.Identity;
 using Portal.Application.Auditing;
 using Portal.Application.Areas;
 using Portal.Application.Permissions;
+using Portal.Application.Notifications;
 using Portal.Application.Roles;
 using Portal.Application.Users;
 using Portal.Infrastructure.Areas;
@@ -18,6 +19,7 @@ using Portal.Infrastructure.Users;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
+using Portal.Infrastructure.Notifications;
 
 namespace Portal.Infrastructure;
 
@@ -70,6 +72,12 @@ public static class DependencyInjection
             });
 
         services.AddSingleton<TimeProvider>(TimeProvider.System);
+        services.AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName))
+            .Validate(
+                options => !options.Enabled || IsValidEmailConfiguration(options),
+                "Email configuration is incomplete or invalid.")
+            .ValidateOnStart();
         services.AddScoped<DatabaseSeeder>();
         services.AddHttpContextAccessor();
         services.AddScoped<PortalCookieAuthenticationEvents>();
@@ -80,7 +88,19 @@ public static class DependencyInjection
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }
+
+    private static bool IsValidEmailConfiguration(EmailOptions options) =>
+        !string.IsNullOrWhiteSpace(options.Host)
+        && options.Port is > 0 and <= 65_535
+        && !string.IsNullOrWhiteSpace(options.FromName)
+        && System.Net.Mail.MailAddress.TryCreate(options.FromAddress, out _)
+        && Uri.TryCreate(options.PortalBaseUrl, UriKind.Absolute, out var portalUri)
+        && (portalUri.Scheme == Uri.UriSchemeHttp
+            || portalUri.Scheme == Uri.UriSchemeHttps)
+        && !string.IsNullOrWhiteSpace(options.EnvironmentLabel);
 }

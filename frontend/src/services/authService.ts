@@ -1,5 +1,6 @@
 import { ApiError, clearAntiforgeryToken, getJson, postJson } from '../api/httpClient'
 import type { AuthenticatedUser, LoginResult } from '../types/models'
+import type { NotificationStatus } from './notificationMessages'
 
 interface LoginResponse {
   authenticated: boolean
@@ -28,11 +29,13 @@ export const authService = {
     clearAntiforgeryToken()
   },
   async changeRequiredPassword(newPassword: string, confirmPassword: string) {
-    await postJson<{ succeeded: boolean }>('/auth/change-required-password', { newPassword, confirmPassword })
+    const result = await postJson<{ succeeded: boolean; notificationStatus: NotificationStatus }>('/auth/change-required-password', { newPassword, confirmPassword })
     clearAntiforgeryToken()
+    return result.notificationStatus
   },
   async changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
-    await postJson<{ succeeded: boolean }>('/auth/change-password', { currentPassword, newPassword, confirmPassword })
+    const result = await postJson<{ succeeded: boolean; notificationStatus: NotificationStatus }>('/auth/change-password', { currentPassword, newPassword, confirmPassword })
     clearAntiforgeryToken()
+    return result.notificationStatus
   },
 }

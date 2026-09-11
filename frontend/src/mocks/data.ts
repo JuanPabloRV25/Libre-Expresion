@@ -1,4 +1,4 @@
-import type { Area, DemoEmail, Permission, PortalUser, Role } from '../types/models'
+import type { Area, Permission, PortalUser, Role } from '../types/models'
 
 export const permissions: Permission[] = [
   { code: 'areas.view', name: 'Ver áreas', module: 'Áreas', description: 'Consulta de áreas o dependencias.' },
@@ -51,9 +51,4 @@ export const users: PortalUser[] = [
   { id: 6, documentType: 'CC', document: '10000006', firstName: 'Natalia', lastName: 'Cárdenas', email: 'natalia.cardenas@demo.local', areaId: 4, roleIds: ['4'], status: 'active', password: '10000006', mustChangePassword: false },
   { id: 7, documentType: 'CC', document: '10000007', firstName: 'Valentina', lastName: 'Rojas', email: 'valentina.rojas@demo.local', areaId: 6, roleIds: ['7'], status: 'active', password: '10000007', mustChangePassword: false },
   { id: 8, documentType: 'CC', document: '10000008', firstName: 'Sebastián', lastName: 'López', email: 'sebastian.lopez@demo.local', areaId: 5, roleIds: ['8'], status: 'active', password: '10000008', mustChangePassword: false },
-]
-
-export const emails: DemoEmail[] = [
-  { id: 'mail-welcome-1', recipientName: 'Andrés Pardo', recipientEmail: 'andres.pardo@demo.local', subject: 'Bienvenido(a) - Creación de usuario en Portal Libre Expresión', type: 'Creación de usuario', sentAt: 'Hoy, 8:31 a. m.', document: '10000004' },
-  { id: 'mail-password-2', recipientName: 'Mariana Ruiz', recipientEmail: 'mariana.ruiz@demo.local', subject: 'Confirmación de cambio de contraseña - Portal Libre Expresión', type: 'Cambio de contraseña', sentAt: '26 ago, 11:21 a. m.' },
 ]

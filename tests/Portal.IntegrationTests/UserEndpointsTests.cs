@@ -80,7 +80,9 @@ public sealed class UserEndpointsTests
         Assert.False(created.TryGetProperty("passwordHash", out _));
         var userId = created.GetProperty("id").GetGuid();
         var createdAt = created.GetProperty("createdAt").GetDateTimeOffset();
-        Assert.Equal("pending_integration", createdBody.GetProperty("notificationStatus").GetString());
+        Assert.Equal("sent", createdBody.GetProperty("notificationStatus").GetString());
+        Assert.Single(factory.EmailSender.Messages);
+        Assert.Equal(email, factory.EmailSender.Messages.Single().To);
         Assert.True(created.GetProperty("mustChangePassword").GetBoolean());
         Assert.Equal(fixtures.AreaId, created.GetProperty("area").GetProperty("id").GetGuid());
 
@@ -120,6 +122,7 @@ public sealed class UserEndpointsTests
         Assert.Equal(
             "invalid_role_ids",
             (await unknownRole.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Single(factory.EmailSender.Messages);
 
         var detail = await client.GetFromJsonAsync<JsonElement>($"/api/users/{userId}");
         Assert.Equal(document, detail.GetProperty("documentNumber").GetString());
@@ -173,7 +176,7 @@ public sealed class UserEndpointsTests
             .OrderBy(audit => audit.OccurredAt)
             .ToArrayAsync();
         Assert.Equal(
-            ["user.created", "user.updated", "user.roles_updated"],
+            ["user.created", "notification.user_created.sent", "user.updated", "user.roles_updated"],
             auditEvents.Select(audit => audit.Action));
         Assert.All(auditEvents, audit => Assert.Equal(superadmin.Id, audit.ActorUserId));
         Assert.DoesNotContain(
@@ -249,7 +252,7 @@ public sealed class UserEndpointsTests
         Assert.Equal(HttpStatusCode.OK, resetResponse.StatusCode);
         var reset = await resetResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(reset.GetProperty("passwordReset").GetBoolean());
-        Assert.Equal("pending_integration", reset.GetProperty("notificationStatus").GetString());
+        Assert.Equal("sent", reset.GetProperty("notificationStatus").GetString());
         Assert.Equal(HttpStatusCode.Unauthorized, (await userClient.GetAsync("/api/auth/me")).StatusCode);
         Assert.Equal(
             HttpStatusCode.Unauthorized,
@@ -269,6 +272,53 @@ public sealed class UserEndpointsTests
         Assert.Contains("user.deactivated", actions);
         Assert.Contains("user.activated", actions);
         Assert.Contains("user.password_reset", actions);
+        Assert.Contains("notification.password_reset.sent", actions);
+    }
+
+    [Fact]
+    public async Task Notification_failure_does_not_rollback_user_creation_or_password_reset()
+    {
+        await using var factory = new PortalApiFactory();
+        var superadmin = await SeedSuperadminAsync(factory);
+        using var client = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(client, superadmin.Document, SuperadminPassword)).StatusCode);
+        factory.EmailSender.ShouldFail = true;
+
+        var document = $"7{Random.Shared.NextInt64(100000000, 999999999)}";
+        var createdResponse = await SendWithCsrfAsync(
+            client,
+            HttpMethod.Post,
+            "/api/users",
+            NewUserRequest(document, $"failed-{Guid.NewGuid():N}@example.test", null, []));
+        Assert.Equal(HttpStatusCode.Created, createdResponse.StatusCode);
+        var createdBody = await createdResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("failed", createdBody.GetProperty("notificationStatus").GetString());
+        var userId = createdBody.GetProperty("user").GetProperty("id").GetGuid();
+
+        var resetResponse = await SendWithCsrfAsync(
+            client,
+            HttpMethod.Post,
+            $"/api/users/{userId}/reset-password",
+            new { });
+        Assert.Equal(HttpStatusCode.OK, resetResponse.StatusCode);
+        Assert.Equal(
+            "failed",
+            (await resetResponse.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("notificationStatus")
+                .GetString());
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await context.Users.SingleAsync(user => user.Id == userId);
+        Assert.True(persisted.MustChangePassword);
+        var actions = await context.AuditEvents
+            .Where(audit => audit.EntityId == userId.ToString())
+            .Select(audit => audit.Action)
+            .ToArrayAsync();
+        Assert.Contains("notification.user_created.failed", actions);
+        Assert.Contains("notification.password_reset.failed", actions);
     }
 
     [Fact]

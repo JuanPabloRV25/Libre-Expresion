@@ -162,7 +162,7 @@ public static class AuthEndpoints
         PasswordChangeResult result) => result.Status switch
         {
             PasswordChangeStatus.Succeeded => Results.Ok(
-                new OperationResponse(true)),
+                new PasswordChangeResponse(true, result.NotificationStatus!)),
             PasswordChangeStatus.ConfirmationMismatch => Error(
                 StatusCodes.Status400BadRequest,
                 "password_confirmation_mismatch",
@@ -231,4 +231,8 @@ public static class AuthEndpoints
         string ConfirmPassword);
 
     public sealed record OperationResponse(bool Succeeded);
+
+    public sealed record PasswordChangeResponse(
+        bool Succeeded,
+        string NotificationStatus);
 }

@@ -18,8 +18,6 @@ import AuditView from '../views/AuditView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ChangePasswordView from '../views/ChangePasswordView.vue'
 import UnauthorizedView from '../views/UnauthorizedView.vue'
-import EmailsView from '../views/EmailsView.vue'
-import EmailDetailView from '../views/EmailDetailView.vue'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -51,8 +49,6 @@ export const router = createRouter({
     { path: '/audit', component: AuditView, meta: { requiresAuth: true, permission: 'audit.view', title: 'Auditoría' } },
     { path: '/profile', component: ProfileView, meta: { requiresAuth: true, title: 'Mi perfil' } },
     { path: '/profile/change-password', component: ChangePasswordView, meta: { requiresAuth: true, title: 'Cambiar contraseña' } },
-    { path: '/demo/emails', component: EmailsView, meta: { requiresAuth: true, permission: 'users.view', title: 'Correos simulados' } },
-    { path: '/demo/emails/:id', component: EmailDetailView, meta: { requiresAuth: true, permission: 'users.view', title: 'Vista previa de correo' } },
     { path: '/unauthorized', component: UnauthorizedView, meta: { requiresAuth: true, title: 'Acceso no autorizado' } },
     { path: '/:pathMatch(.*)*', redirect: '/home' },
   ],
