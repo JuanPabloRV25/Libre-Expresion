@@ -7,38 +7,40 @@ public static class UserCreatedEmail
 {
     public static EmailMessage Create(
         NotificationRecipient recipient,
-        EmailTemplateContext context)
+        EmailTemplateContext context,
+        string encodedPasswordToken)
     {
-        var loginUrl = EmailTemplateLayout.LoginUrl(context.PortalBaseUrl);
-        var title = "Bienvenido(a) al Portal Libre Expresión";
+        var passwordUrl = EmailTemplateLayout.PasswordResetUrl(recipient, context, encodedPasswordToken);
+        var title = "Bienvenido al Portal Libre Expresión";
         var details = $"""
             <p>Tu usuario fue creado correctamente.</p>
             <div class="credential"><strong>Usuario</strong><span>{WebUtility.HtmlEncode(recipient.DocumentNumber)}</span></div>
-            <div class="credential"><strong>Contraseña temporal</strong><span>Tu número de documento</span></div>
-            <p>En el primer ingreso deberás definir una nueva contraseña. Al completarlo, la sesión se cerrará y deberás ingresar nuevamente con tu nueva contraseña.</p>
-            <p><strong>No compartas tus credenciales con otras personas.</strong></p>
+            <p>Utiliza el enlace personal y temporal de este correo para establecer tu contraseña antes de ingresar.</p>
+            <p>El enlace vence en 2 horas. Después ingresarás con este número de documento y la contraseña que establezcas.</p>
+            <p><strong>Por seguridad, no compartas este enlace con otras personas.</strong></p>
             """;
         var text = $"""
             Hola, {recipient.FirstName}.
 
             Tu usuario fue creado correctamente en Portal Libre Expresión.
             Usuario: {recipient.DocumentNumber}
-            Contraseña temporal: tu número de documento.
 
-            En el primer ingreso deberás definir una nueva contraseña. Al completarlo, la sesión se cerrará y deberás ingresar nuevamente con tu nueva contraseña.
-            No compartas tus credenciales con otras personas.
+            Utiliza el enlace personal y temporal para establecer tu contraseña antes de ingresar.
+            El enlace vence en 2 horas. Después ingresarás con tu número de documento y la contraseña que establezcas.
+            No compartas este enlace con otras personas.
 
-            Ingresar al sistema: {loginUrl}
+            Establecer contraseña: {passwordUrl}
             """;
 
         return EmailTemplateLayout.Create(
             recipient,
             context,
-            "Bienvenido(a) - Portal Libre Expresión",
+            "Bienvenido al Portal Libre Expresión",
             title,
             details,
             text,
-            "INGRESAR AL SISTEMA");
+            "ESTABLECER CONTRASEÑA",
+            passwordUrl);
     }
 }
 
@@ -46,28 +48,29 @@ public static class PasswordResetEmail
 {
     public static EmailMessage Create(
         NotificationRecipient recipient,
-        EmailTemplateContext context)
+        EmailTemplateContext context,
+        string encodedPasswordToken)
     {
-        var loginUrl = EmailTemplateLayout.LoginUrl(context.PortalBaseUrl);
-        var title = "Tu contraseña fue restablecida";
+        var passwordUrl = EmailTemplateLayout.PasswordResetUrl(recipient, context, encodedPasswordToken);
+        var title = "Restablece tu contraseña";
         var details = $"""
             <p>Un administrador restableció tu contraseña de acceso.</p>
             <div class="credential"><strong>Usuario</strong><span>{WebUtility.HtmlEncode(recipient.DocumentNumber)}</span></div>
-            <div class="credential"><strong>Contraseña temporal</strong><span>Tu número de documento</span></div>
-            <p>En el siguiente ingreso deberás definir una nueva contraseña. Al completarlo, la sesión se cerrará y deberás ingresar nuevamente.</p>
-            <p><strong>Si no reconoces esta operación, comunícate de inmediato con el administrador del sistema.</strong></p>
+            <p>Utiliza el enlace personal y temporal de este correo para establecer una nueva contraseña.</p>
+            <p>El enlace vence en 2 horas y solo puede utilizarse una vez.</p>
+            <p><strong>Si tienes dudas sobre esta solicitud, comunícate con el administrador del sistema.</strong></p>
             """;
         var text = $"""
             Hola, {recipient.FirstName}.
 
-            Un administrador restableció tu contraseña de Portal Libre Expresión.
+            Un administrador solicitó el restablecimiento de tu contraseña de Portal Libre Expresión.
             Usuario: {recipient.DocumentNumber}
-            Contraseña temporal: tu número de documento.
 
-            En el siguiente ingreso deberás definir una nueva contraseña. Al completarlo, la sesión se cerrará y deberás ingresar nuevamente.
-            Si no reconoces esta operación, comunícate de inmediato con el administrador del sistema.
+            Utiliza el enlace personal y temporal para establecer una nueva contraseña.
+            El enlace vence en 2 horas y solo puede utilizarse una vez.
+            Si tienes dudas sobre esta solicitud, comunícate con el administrador del sistema.
 
-            Ingresar al sistema: {loginUrl}
+            Restablecer contraseña: {passwordUrl}
             """;
 
         return EmailTemplateLayout.Create(
@@ -77,7 +80,8 @@ public static class PasswordResetEmail
             title,
             details,
             text,
-            "INGRESAR AL SISTEMA");
+            "RESTABLECER CONTRASEÑA",
+            passwordUrl);
     }
 }
 
@@ -129,15 +133,15 @@ internal static class EmailTemplateLayout
         string title,
         string details,
         string text,
-        string? buttonLabel = null)
+        string? buttonLabel = null,
+        string? buttonUrl = null)
     {
         var environment = WebUtility.HtmlEncode(context.EnvironmentLabel.Trim());
         var greeting = WebUtility.HtmlEncode(recipient.FirstName.Trim());
-        var loginUrl = LoginUrl(context.PortalBaseUrl);
-        var encodedLoginUrl = WebUtility.HtmlEncode(loginUrl);
+        var encodedButtonUrl = WebUtility.HtmlEncode(buttonUrl ?? LoginUrl(context.PortalBaseUrl));
         var button = buttonLabel is null
             ? string.Empty
-            : $"<p><a class=\"button\" href=\"{encodedLoginUrl}\">{WebUtility.HtmlEncode(buttonLabel)}</a></p>";
+            : $"<p><a class=\"button\" href=\"{encodedButtonUrl}\">{WebUtility.HtmlEncode(buttonLabel)}</a></p>";
         var html = $$"""
             <!doctype html>
             <html lang="es">
@@ -166,6 +170,14 @@ internal static class EmailTemplateLayout
             html,
             plainText);
     }
+
+    public static string PasswordResetUrl(
+        NotificationRecipient recipient,
+        EmailTemplateContext context,
+        string encodedPasswordToken) =>
+        $"{context.PortalBaseUrl.Trim().TrimEnd('/')}/reset-password" +
+        $"?userId={Uri.EscapeDataString(recipient.UserId.ToString())}" +
+        $"&token={Uri.EscapeDataString(encodedPasswordToken)}";
 
     public static string LoginUrl(string portalBaseUrl) =>
         $"{portalBaseUrl.Trim().TrimEnd('/')}/login";

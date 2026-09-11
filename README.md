@@ -33,6 +33,27 @@ Fase 1:
 - `tests/` — Pruebas automatizadas.
 - `deploy/` — Configuración de despliegue.
 
+## Flujo de contraseñas en DEV
+
+Los usuarios creados desde el Portal se almacenan inicialmente sin contraseña.
+ASP.NET Core Identity genera un token de restablecimiento protegido, asociado al
+usuario y con una vida útil de 2 horas. El enlace enviado por correo permite
+establecer la contraseña una sola vez; después, el inicio de sesión continúa
+utilizando número de documento y contraseña.
+
+El restablecimiento administrativo invalida las sesiones y la contraseña
+anteriores, genera un token nuevo y envía otro enlace. Si el correo falla, la
+operación permanece registrada y un administrador con `users.reset_password`
+puede reenviar un enlace desde el detalle del usuario.
+
+El Superadmin inicial conserva deliberadamente el bootstrap basado en documento
+y el cambio obligatorio del primer ingreso. Esta es la única excepción al flujo
+por enlace.
+
+Por continuidad administrativa, el único Superadmin activo no puede usar el
+restablecimiento administrativo; debe cambiar su propia contraseña desde Perfil
+o promover primero otro Superadmin activo.
+
 ## Deployment DEV
 
 El procedimiento reproducible con Docker Compose, las operaciones one-shot de

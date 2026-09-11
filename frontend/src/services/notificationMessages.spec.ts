@@ -7,13 +7,13 @@ import {
 
 describe('notification result messages', () => {
   it('maps sent and failed user creation results', () => {
-    expect(userCreatedNotificationMessage('sent')).toBe('El usuario fue creado exitosamente. Se envió la información de acceso al correo registrado.')
-    expect(userCreatedNotificationMessage('failed')).toBe('El usuario fue creado exitosamente, pero no fue posible enviar la notificación.')
+    expect(userCreatedNotificationMessage('sent')).toContain('enlace para establecer su contraseña')
+    expect(userCreatedNotificationMessage('failed')).toContain('Puedes reenviarlo')
   })
 
   it('maps sent and failed password reset results', () => {
-    expect(passwordResetNotificationMessage('sent')).toBe('La contraseña fue restablecida exitosamente. Se envió la información de acceso al correo registrado.')
-    expect(passwordResetNotificationMessage('failed')).toBe('La contraseña fue restablecida, pero no fue posible enviar la notificación.')
+    expect(passwordResetNotificationMessage('sent')).toContain('enlace para establecer una nueva contraseña')
+    expect(passwordResetNotificationMessage('failed')).toContain('Intenta enviarlo nuevamente')
   })
 
   it('maps sent and failed password change results', () => {

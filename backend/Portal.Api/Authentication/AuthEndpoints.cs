@@ -30,6 +30,10 @@ public static class AuthEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<AntiforgeryEndpointFilter>();
 
+        group.MapPost("/reset-password", ResetPasswordAsync)
+            .AllowAnonymous()
+            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+
         group.MapPost("/change-password", ChangePasswordAsync)
             .RequireAuthorization()
             .AddEndpointFilter<AntiforgeryEndpointFilter>();
@@ -158,6 +162,46 @@ public static class AuthEndpoints
         return MapPasswordChangeResult(result);
     }
 
+    private static async Task<IResult> ResetPasswordAsync(
+        PasswordResetRequest request,
+        IPortalAuthenticationService authenticationService,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(request.UserId, out var userId))
+        {
+            return InvalidPasswordResetLink();
+        }
+
+        var result = await authenticationService.CompletePasswordResetAsync(
+            userId,
+            request.Token ?? string.Empty,
+            request.NewPassword ?? string.Empty,
+            request.ConfirmPassword ?? string.Empty,
+            cancellationToken);
+
+        return result.Status switch
+        {
+            PasswordResetCompletionStatus.Succeeded => Results.Ok(
+                new PasswordResetCompletedResponse(
+                    PasswordReset: true,
+                    result.NotificationStatus!)),
+            PasswordResetCompletionStatus.ConfirmationMismatch => Error(
+                StatusCodes.Status400BadRequest,
+                "password_confirmation_mismatch",
+                "La confirmación no coincide con la nueva contraseña."),
+            PasswordResetCompletionStatus.InvalidPassword => Error(
+                StatusCodes.Status400BadRequest,
+                "invalid_new_password",
+                "La nueva contraseña no cumple la política de seguridad."),
+            _ => InvalidPasswordResetLink(),
+        };
+    }
+
+    private static IResult InvalidPasswordResetLink() => Error(
+        StatusCodes.Status400BadRequest,
+        "invalid_or_expired_password_reset",
+        "El enlace es inválido, venció o ya fue utilizado.");
+
     private static IResult MapPasswordChangeResult(
         PasswordChangeResult result) => result.Status switch
         {
@@ -229,6 +273,16 @@ public static class AuthEndpoints
         string CurrentPassword,
         string NewPassword,
         string ConfirmPassword);
+
+    public sealed record PasswordResetRequest(
+        string? UserId,
+        string? Token,
+        string? NewPassword,
+        string? ConfirmPassword);
+
+    public sealed record PasswordResetCompletedResponse(
+        bool PasswordReset,
+        string NotificationStatus);
 
     public sealed record OperationResponse(bool Succeeded);
 

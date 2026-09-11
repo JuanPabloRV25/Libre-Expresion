@@ -13,14 +13,16 @@ public sealed class NotificationService(
 
     public Task<NotificationResult> NotifyUserCreatedAsync(
         NotificationRecipient recipient,
+        string encodedPasswordToken,
         CancellationToken cancellationToken = default) => SendAsync(
-            UserCreatedEmail.Create(recipient, CreateContext()),
+            UserCreatedEmail.Create(recipient, CreateContext(), encodedPasswordToken),
             cancellationToken);
 
     public Task<NotificationResult> NotifyPasswordResetAsync(
         NotificationRecipient recipient,
+        string encodedPasswordToken,
         CancellationToken cancellationToken = default) => SendAsync(
-            PasswordResetEmail.Create(recipient, CreateContext()),
+            PasswordResetEmail.Create(recipient, CreateContext(), encodedPasswordToken),
             cancellationToken);
 
     public Task<NotificationResult> NotifyPasswordChangedAsync(

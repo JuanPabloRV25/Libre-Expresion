@@ -21,9 +21,7 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSend
 
         var mimeMessage = BuildMimeMessage(message, settings);
         using var client = new SmtpClient();
-        var socketOptions = settings.UseTls
-            ? SecureSocketOptions.StartTls
-            : SecureSocketOptions.None;
+        var socketOptions = ResolveSocketOptions(settings);
 
         await client.ConnectAsync(
             settings.Host,
@@ -60,4 +58,11 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSend
         }.ToMessageBody();
         return mimeMessage;
     }
+
+    internal static SecureSocketOptions ResolveSocketOptions(EmailOptions settings) =>
+        settings.UseSsl
+            ? SecureSocketOptions.SslOnConnect
+            : settings.UseTls
+                ? SecureSocketOptions.StartTls
+                : SecureSocketOptions.None;
 }

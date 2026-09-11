@@ -1,3 +1,4 @@
+using System.Net;
 using Portal.Application.Notifications;
 
 namespace Portal.UnitTests;
@@ -10,37 +11,43 @@ public sealed class EmailTemplateTests
         "María",
         "Pruebas",
         "8809100001");
+    private const string EncodedToken = "encoded-token_123";
 
     private static readonly EmailTemplateContext Context = new(
         "http://127.0.0.1:5173/",
         "DESARROLLO");
 
     [Fact]
-    public void UserCreated_contains_recipient_credentials_link_html_and_text()
+    public void UserCreated_contains_password_setup_link_but_no_temporary_password()
     {
-        var message = UserCreatedEmail.Create(Recipient, Context);
+        var message = UserCreatedEmail.Create(Recipient, Context, EncodedToken);
 
         Assert.Equal(Recipient.Email, message.To);
         Assert.Contains("[DESARROLLO]", message.Subject);
         Assert.Contains("8809100001", message.HtmlBody);
-        Assert.Contains("Tu número de documento", message.HtmlBody);
-        Assert.Contains("http://127.0.0.1:5173/login", message.HtmlBody);
-        Assert.Contains("INGRESAR AL SISTEMA", message.HtmlBody);
+        Assert.Contains("/reset-password?userId=", message.HtmlBody);
+        Assert.Contains("token=encoded-token_123", message.HtmlBody);
+        Assert.Contains("ESTABLECER CONTRASEÑA", WebUtility.HtmlDecode(message.HtmlBody));
         Assert.Contains("8809100001", message.TextBody);
-        Assert.Contains("http://127.0.0.1:5173/login", message.TextBody);
+        Assert.Contains("token=encoded-token_123", message.TextBody);
+        Assert.DoesNotContain("Contraseña temporal", message.HtmlBody + message.TextBody);
+        Assert.DoesNotContain("Tu número de documento", message.HtmlBody + message.TextBody);
     }
 
     [Fact]
     public void PasswordReset_contains_required_security_content_in_both_bodies()
     {
-        var message = PasswordResetEmail.Create(Recipient, Context);
+        var message = PasswordResetEmail.Create(Recipient, Context, EncodedToken);
 
         Assert.Equal(Recipient.Email, message.To);
         Assert.Contains("Restablecimiento", message.Subject);
         Assert.Contains("restableció", message.HtmlBody);
-        Assert.Contains("no reconoces", message.HtmlBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Contraseña temporal", message.TextBody);
-        Assert.Contains("http://127.0.0.1:5173/login", message.TextBody);
+        Assert.Contains("temporal", message.HtmlBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RESTABLECER CONTRASEÑA", WebUtility.HtmlDecode(message.HtmlBody));
+        Assert.Contains("token=encoded-token_123", message.HtmlBody);
+        Assert.Contains("token=encoded-token_123", message.TextBody);
+        Assert.DoesNotContain("Contraseña temporal", message.HtmlBody + message.TextBody);
+        Assert.DoesNotContain("Tu número de documento", message.HtmlBody + message.TextBody);
     }
 
     [Fact]

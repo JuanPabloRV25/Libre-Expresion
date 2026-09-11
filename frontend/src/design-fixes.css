@@ -1,0 +1,5 @@
+/* Regla de base separada para mantener estable la transición de ancho del layout. */
+.app-shell {
+  grid-template-columns: 264px minmax(0, 1fr);
+  transition: grid-template-columns .24s ease;
+}

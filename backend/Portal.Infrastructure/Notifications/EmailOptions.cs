@@ -12,6 +12,8 @@ public sealed class EmailOptions
 
     public bool UseTls { get; init; }
 
+    public bool UseSsl { get; init; }
+
     public string Username { get; init; } = string.Empty;
 
     public string Password { get; init; } = string.Empty;

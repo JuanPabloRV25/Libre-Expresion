@@ -2,9 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Portal.Application.Notifications;
 using Portal.Domain.Areas;
 using Portal.Domain.Permissions;
 using Portal.Infrastructure.Identity;
@@ -44,6 +46,14 @@ public sealed class UserEndpointsTests
                 HttpMethod.Post,
                 "/api/users",
                 NewUserRequest("7000000011", "forbidden@example.test", null, []))).StatusCode);
+
+        Assert.Equal(
+            HttpStatusCode.Forbidden,
+            (await SendWithCsrfAsync(
+                limitedClient,
+                HttpMethod.Post,
+                $"/api/users/{superadmin.Id}/reset-password",
+                new { })).StatusCode);
 
         using var adminClient = factory.CreateClient();
         Assert.Equal(
@@ -254,6 +264,337 @@ public sealed class UserEndpointsTests
     }
 
     [Fact]
+    public async Task Created_user_is_passwordless_and_email_token_is_single_use()
+    {
+        await using var factory = new PortalApiFactory();
+        var superadmin = await SeedSuperadminAsync(factory);
+        using var adminClient = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(adminClient, superadmin.Document, SuperadminPassword)).StatusCode);
+
+        var document = $"7{Random.Shared.NextInt64(100000000, 999999999)}";
+        var createdResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Post,
+            "/api/users",
+            NewUserRequest(
+                document,
+                $"setup-{Guid.NewGuid():N}@example.test",
+                null,
+                []));
+        Assert.Equal(HttpStatusCode.Created, createdResponse.StatusCode);
+        var created = await createdResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var createdUserId = created.GetProperty("user").GetProperty("id").GetGuid();
+        var resetData = ExtractPasswordResetData(factory.EmailSender.Messages.Single());
+        Assert.Equal(createdUserId, resetData.UserId);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await userManager.FindByIdAsync(createdUserId.ToString())
+                ?? throw new InvalidOperationException("Created user was not found.");
+            Assert.Null(user.PasswordHash);
+            Assert.False(await userManager.CheckPasswordAsync(user, document));
+        }
+
+        using var userClient = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            (await LoginAsync(userClient, document, document)).StatusCode);
+
+        var completed = await SendWithCsrfAsync(
+            userClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId = resetData.UserId,
+                token = resetData.Token,
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+        Assert.Equal(
+            "sent",
+            (await completed.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("notificationStatus")
+                .GetString());
+
+        var reused = await SendWithCsrfAsync(
+            userClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId = resetData.UserId,
+                token = resetData.Token,
+                newPassword = "Another!42",
+                confirmPassword = "Another!42",
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, reused.StatusCode);
+        Assert.Equal(
+            "invalid_or_expired_password_reset",
+            (await reused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(userClient, document, DefinitivePassword)).StatusCode);
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var persisted = await context.Users.SingleAsync(user => user.Id == createdUserId);
+            Assert.False(persisted.MustChangePassword);
+            var auditEvents = await context.AuditEvents
+                .Where(audit => audit.EntityId == createdUserId.ToString())
+                .ToArrayAsync();
+            Assert.Contains(auditEvents, audit => audit.Action == "password_reset.completed");
+            Assert.DoesNotContain(
+                auditEvents,
+                audit => audit.Metadata?.Contains(resetData.Token, StringComparison.Ordinal) == true
+                    || audit.Metadata?.Contains("reset-password", StringComparison.OrdinalIgnoreCase) == true);
+        }
+    }
+
+    [Fact]
+    public async Task Inactive_user_setup_link_survives_activation_before_it_is_consumed()
+    {
+        await using var factory = new PortalApiFactory();
+        var superadmin = await SeedSuperadminAsync(factory);
+        using var adminClient = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(adminClient, superadmin.Document, SuperadminPassword)).StatusCode);
+
+        var document = $"7{Random.Shared.NextInt64(100000000, 999999999)}";
+        var createdResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Post,
+            "/api/users",
+            new
+            {
+                documentNumber = document,
+                firstName = "Usuario",
+                lastName = "Inactivo",
+                email = $"inactive-{Guid.NewGuid():N}@example.test",
+                areaId = (Guid?)null,
+                advisorCode = (string?)null,
+                roleIds = Array.Empty<Guid>(),
+                isActive = false,
+            });
+        Assert.Equal(HttpStatusCode.Created, createdResponse.StatusCode);
+        var userId = (await createdResponse.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("user")
+            .GetProperty("id")
+            .GetGuid();
+        var resetData = ExtractPasswordResetData(factory.EmailSender.Messages.Single());
+
+        var activation = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Patch,
+            $"/api/users/{userId}/status",
+            new { isActive = true });
+        Assert.Equal(HttpStatusCode.OK, activation.StatusCode);
+
+        using var userClient = factory.CreateClient();
+        var completed = await SendWithCsrfAsync(
+            userClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId,
+                token = resetData.Token,
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(userClient, document, DefinitivePassword)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Invalid_password_token_does_not_set_a_password()
+    {
+        await using var factory = new PortalApiFactory();
+        var superadmin = await SeedSuperadminAsync(factory);
+        using var adminClient = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(adminClient, superadmin.Document, SuperadminPassword)).StatusCode);
+
+        var document = $"7{Random.Shared.NextInt64(100000000, 999999999)}";
+        var createdResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Post,
+            "/api/users",
+            NewUserRequest(document, $"invalid-{Guid.NewGuid():N}@example.test", null, []));
+        var userId = (await createdResponse.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("user")
+            .GetProperty("id")
+            .GetGuid();
+        var resetData = ExtractPasswordResetData(factory.EmailSender.Messages.Single());
+
+        using var anonymousClient = factory.CreateClient();
+        var response = await SendWithCsrfAsync(
+            anonymousClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId,
+                token = resetData.Token + "tampered",
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var user = await scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>()
+            .Users
+            .SingleAsync(candidate => candidate.Id == userId);
+        Assert.Null(user.PasswordHash);
+        Assert.True(user.MustChangePassword);
+    }
+
+    [Fact]
+    public async Task Expired_password_token_does_not_set_a_password()
+    {
+        await using var factory = new PortalApiFactory(TimeSpan.Zero);
+        var superadmin = await SeedSuperadminAsync(factory);
+        using var adminClient = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(adminClient, superadmin.Document, SuperadminPassword)).StatusCode);
+
+        var document = $"7{Random.Shared.NextInt64(100000000, 999999999)}";
+        var createdResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Post,
+            "/api/users",
+            NewUserRequest(document, $"expired-{Guid.NewGuid():N}@example.test", null, []));
+        var userId = (await createdResponse.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("user")
+            .GetProperty("id")
+            .GetGuid();
+        var resetData = ExtractPasswordResetData(factory.EmailSender.Messages.Single());
+
+        using var anonymousClient = factory.CreateClient();
+        var response = await SendWithCsrfAsync(
+            anonymousClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId,
+                token = resetData.Token,
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(
+            "invalid_or_expired_password_reset",
+            (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var user = await scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>()
+            .Users
+            .SingleAsync(candidate => candidate.Id == userId);
+        Assert.Null(user.PasswordHash);
+    }
+
+    [Fact]
+    public async Task Email_change_invalidates_pending_token_and_admin_can_resend_it()
+    {
+        await using var factory = new PortalApiFactory();
+        var superadmin = await SeedSuperadminAsync(factory);
+        using var adminClient = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(adminClient, superadmin.Document, SuperadminPassword)).StatusCode);
+
+        var document = $"7{Random.Shared.NextInt64(100000000, 999999999)}";
+        var firstEmail = $"pending-{Guid.NewGuid():N}@example.test";
+        var createdResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Post,
+            "/api/users",
+            NewUserRequest(document, firstEmail, null, []));
+        Assert.Equal(HttpStatusCode.Created, createdResponse.StatusCode);
+        var userId = (await createdResponse.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("user")
+            .GetProperty("id")
+            .GetGuid();
+        var firstResetData = ExtractPasswordResetData(factory.EmailSender.Messages.Single());
+
+        var updatedEmail = $"updated-{Guid.NewGuid():N}@example.test";
+        var updateResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Put,
+            $"/api/users/{userId}",
+            new
+            {
+                firstName = "Ana",
+                lastName = "Pruebas",
+                email = updatedEmail,
+                areaId = (Guid?)null,
+                advisorCode = (string?)null,
+            });
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        using var anonymousClient = factory.CreateClient();
+        var staleTokenResponse = await SendWithCsrfAsync(
+            anonymousClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId,
+                token = firstResetData.Token,
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.BadRequest, staleTokenResponse.StatusCode);
+
+        var resendResponse = await SendWithCsrfAsync(
+            adminClient,
+            HttpMethod.Post,
+            $"/api/users/{userId}/reset-password",
+            new { });
+        Assert.Equal(HttpStatusCode.OK, resendResponse.StatusCode);
+        Assert.Equal(
+            "sent",
+            (await resendResponse.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("notificationStatus")
+                .GetString());
+
+        Assert.Equal(2, factory.EmailSender.Messages.Count);
+        Assert.Equal(updatedEmail, factory.EmailSender.Messages.Last().To);
+        var latestResetData = ExtractPasswordResetData(factory.EmailSender.Messages.Last());
+        Assert.NotEqual(firstResetData.Token, latestResetData.Token);
+
+        var completed = await SendWithCsrfAsync(
+            anonymousClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId,
+                token = latestResetData.Token,
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(anonymousClient, document, DefinitivePassword)).StatusCode);
+    }
+
+    [Fact]
     public async Task Status_and_password_reset_invalidate_existing_sessions()
     {
         await using var factory = new PortalApiFactory();
@@ -274,18 +615,21 @@ public sealed class UserEndpointsTests
             .GetProperty("id")
             .GetGuid();
 
+        var setupData = ExtractPasswordResetData(factory.EmailSender.Messages.Single());
         using var userClient = factory.CreateClient(
             new WebApplicationFactoryClientOptions { HandleCookies = true });
-        Assert.Equal(
-            HttpStatusCode.OK,
-            (await LoginAsync(userClient, document, document)).StatusCode);
-        Assert.Equal(
-            HttpStatusCode.OK,
-            (await SendWithCsrfAsync(
-                userClient,
-                HttpMethod.Post,
-                "/api/auth/change-required-password",
-                new { newPassword = DefinitivePassword, confirmPassword = DefinitivePassword })).StatusCode);
+        var setup = await SendWithCsrfAsync(
+            userClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId = setupData.UserId,
+                token = setupData.Token,
+                newPassword = DefinitivePassword,
+                confirmPassword = DefinitivePassword,
+            });
+        Assert.Equal(HttpStatusCode.OK, setup.StatusCode);
         Assert.Equal(
             HttpStatusCode.OK,
             (await LoginAsync(userClient, document, DefinitivePassword)).StatusCode);
@@ -327,10 +671,26 @@ public sealed class UserEndpointsTests
             HttpStatusCode.Unauthorized,
             (await LoginAsync(userClient, document, DefinitivePassword)).StatusCode);
         Assert.Equal(
-            HttpStatusCode.OK,
+            HttpStatusCode.Unauthorized,
             (await LoginAsync(userClient, document, document)).StatusCode);
-        var profile = await userClient.GetFromJsonAsync<JsonElement>("/api/auth/me");
-        Assert.True(profile.GetProperty("mustChangePassword").GetBoolean());
+
+        var resetData = ExtractPasswordResetData(factory.EmailSender.Messages.Last());
+        const string resetPassword = "ResetComplete!42";
+        var completed = await SendWithCsrfAsync(
+            userClient,
+            HttpMethod.Post,
+            "/api/auth/reset-password",
+            new
+            {
+                userId = resetData.UserId,
+                token = resetData.Token,
+                newPassword = resetPassword,
+                confirmPassword = resetPassword,
+            });
+        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(userClient, document, resetPassword)).StatusCode);
 
         await using var scope = factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -340,7 +700,8 @@ public sealed class UserEndpointsTests
             .ToArrayAsync();
         Assert.Contains("user.deactivated", actions);
         Assert.Contains("user.activated", actions);
-        Assert.Contains("user.password_reset", actions);
+        Assert.Contains("password_reset.requested", actions);
+        Assert.Contains("password_reset.completed", actions);
         Assert.Contains("notification.password_reset.sent", actions);
     }
 
@@ -381,6 +742,7 @@ public sealed class UserEndpointsTests
         await using var scope = factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var persisted = await context.Users.SingleAsync(user => user.Id == userId);
+        Assert.Null(persisted.PasswordHash);
         Assert.True(persisted.MustChangePassword);
         var actions = await context.AuditEvents
             .Where(audit => audit.EntityId == userId.ToString())
@@ -391,7 +753,7 @@ public sealed class UserEndpointsTests
     }
 
     [Fact]
-    public async Task Last_active_superadmin_cannot_be_inactivated_or_lose_the_system_role()
+    public async Task Last_active_superadmin_cannot_be_inactivated_lose_the_system_role_or_be_reset()
     {
         await using var factory = new PortalApiFactory();
         var superadmin = await SeedSuperadminAsync(factory);
@@ -416,6 +778,19 @@ public sealed class UserEndpointsTests
             $"/api/users/{superadmin.Id}/roles",
             new { roleIds = Array.Empty<Guid>() });
         Assert.Equal(HttpStatusCode.Conflict, removeRole.StatusCode);
+
+        var resetPassword = await SendWithCsrfAsync(
+            client,
+            HttpMethod.Post,
+            $"/api/users/{superadmin.Id}/reset-password",
+            new { });
+        Assert.Equal(HttpStatusCode.Conflict, resetPassword.StatusCode);
+        Assert.Equal(
+            "last_superadmin_password_reset_forbidden",
+            (await resetPassword.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("code")
+                .GetString());
+        Assert.Empty(factory.EmailSender.Messages);
 
         await using var scope = factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -582,6 +957,22 @@ public sealed class UserEndpointsTests
 
         await context.SaveChangesAsync();
         return role.Id;
+    }
+
+    private static (Guid UserId, string Token) ExtractPasswordResetData(
+        EmailMessage message)
+    {
+        var line = message.TextBody
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Single(value => value.Contains("/reset-password?", StringComparison.Ordinal));
+        var urlStart = line.IndexOf("http", StringComparison.Ordinal);
+        Assert.True(urlStart >= 0);
+        var uri = new Uri(line[urlStart..]);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        Assert.True(Guid.TryParse(query["userId"], out var userId));
+        var token = query["token"].ToString();
+        Assert.False(string.IsNullOrWhiteSpace(token));
+        return (userId, token);
     }
 
     private static Task<HttpResponseMessage> LoginAsync(

@@ -70,16 +70,16 @@ async function toggleStatus() {
       <div><p class="eyebrow">DETALLE DE USUARIO</p><h1>{{ fullName }}</h1><p>{{ user.email }}</p></div>
       <StatusBadge :active="user.isActive" />
       <div class="detail-actions">
-        <button v-if="auth.hasPermission('users.reset_password')" class="button secondary" @click="resetOpen = true">Restablecer contraseña</button>
+        <button v-if="auth.hasPermission('users.reset_password') && user.id !== auth.currentUser?.id" class="button secondary" @click="resetOpen = true">Enviar restablecimiento</button>
         <RouterLink v-if="auth.hasPermission('users.edit')" class="button secondary" :to="`/users/${user.id}/edit`">Editar</RouterLink>
         <button v-if="auth.hasPermission('users.activate')" class="button" :class="user.isActive ? 'danger ghost' : 'primary'" @click="statusOpen = true">{{ user.isActive ? 'Inactivar' : 'Activar' }}</button>
       </div>
     </section>
     <div v-if="user" class="detail-grid">
-      <section class="panel"><p class="eyebrow">INFORMACIÓN</p><div class="stack-list"><div><strong>Documento</strong><small>{{ user.documentNumber }}</small></div><div><strong>Área</strong><small>{{ user.area?.name ?? 'Sin área' }}</small></div><div><strong>Código de asesor</strong><small>{{ user.advisorCode ?? 'No aplica' }}</small></div><div><strong>Próximo ingreso</strong><small>{{ user.mustChangePassword ? 'Requiere cambio de contraseña' : 'Acceso habitual' }}</small></div></div></section>
+      <section class="panel"><p class="eyebrow">INFORMACIÓN</p><div class="stack-list"><div><strong>Documento</strong><small>{{ user.documentNumber }}</small></div><div><strong>Área</strong><small>{{ user.area?.name ?? 'Sin área' }}</small></div><div><strong>Código de asesor</strong><small>{{ user.advisorCode ?? 'No aplica' }}</small></div><div><strong>Estado de contraseña</strong><small>{{ user.mustChangePassword ? 'Pendiente de establecer contraseña' : 'Contraseña establecida' }}</small></div></div></section>
       <section class="panel"><p class="eyebrow">ROLES ASIGNADOS</p><h3>{{ user.roles.length }} roles</h3><div class="stack-list"><div v-for="role in user.roles" :key="role.id"><strong>{{ role.name }}</strong><small>{{ role.isActive ? 'Activo' : 'Inactivo' }}</small></div><p v-if="!user.roles.length">Este usuario no tiene roles asignados.</p></div></section>
     </div>
-    <ConfirmDialog :open="resetOpen" title="Restablecer contraseña" description="La contraseña temporal volverá a ser el documento y se enviará una notificación al correo registrado." confirm-label="Restablecer" @close="resetOpen = false" @confirm="resetPassword" />
+    <ConfirmDialog :open="resetOpen" title="Enviar restablecimiento" description="Se invalidará la contraseña actual y se enviará al correo registrado un enlace personal y temporal para establecer una nueva." confirm-label="Enviar enlace" @close="resetOpen = false" @confirm="resetPassword" />
     <ConfirmDialog :open="statusOpen" :title="`${user?.isActive ? 'Inactivar' : 'Activar'} usuario`" :description="`Confirma el cambio de estado para ${fullName}.`" confirm-label="Confirmar" @close="statusOpen = false" @confirm="toggleStatus" />
   </AppLayout>
 </template>

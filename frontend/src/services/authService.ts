@@ -33,6 +33,14 @@ export const authService = {
     clearAntiforgeryToken()
     return result.notificationStatus
   },
+  async resetPassword(userId: string, token: string, newPassword: string, confirmPassword: string) {
+    const result = await postJson<{ passwordReset: boolean; notificationStatus: NotificationStatus }>('/auth/reset-password', {
+      userId, token, newPassword, confirmPassword,
+    })
+    clearAntiforgeryToken()
+    return result.notificationStatus
+  },
+
   async changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
     const result = await postJson<{ succeeded: boolean; notificationStatus: NotificationStatus }>('/auth/change-password', { currentPassword, newPassword, confirmPassword })
     clearAntiforgeryToken()

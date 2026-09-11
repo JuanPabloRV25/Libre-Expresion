@@ -19,5 +19,12 @@ public interface IPortalAuthenticationService
         string confirmPassword,
         CancellationToken cancellationToken = default);
 
+    Task<PasswordResetCompletionResult> CompletePasswordResetAsync(
+        Guid userId,
+        string encodedToken,
+        string newPassword,
+        string confirmPassword,
+        CancellationToken cancellationToken = default);
+
     Task SignOutAsync();
 }

@@ -185,6 +185,77 @@ public sealed class PortalAuthenticationService(
             notification.Status);
     }
 
+    public async Task<PasswordResetCompletionResult> CompletePasswordResetAsync(
+        Guid userId,
+        string encodedToken,
+        string newPassword,
+        string confirmPassword,
+        CancellationToken cancellationToken = default)
+    {
+        if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
+        {
+            return new PasswordResetCompletionResult(
+                PasswordResetCompletionStatus.ConfirmationMismatch);
+        }
+
+        if (!PasswordResetTokenCodec.TryDecode(encodedToken, out var token))
+        {
+            return new PasswordResetCompletionResult(
+                PasswordResetCompletionStatus.InvalidToken);
+        }
+
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null || !user.MustChangePassword)
+        {
+            return new PasswordResetCompletionResult(
+                PasswordResetCompletionStatus.InvalidToken);
+        }
+
+        await using var transaction = await BeginTransactionAsync(cancellationToken);
+        var resetResult = await userManager.ResetPasswordAsync(
+            user,
+            token,
+            newPassword);
+        if (!resetResult.Succeeded)
+        {
+            var status = resetResult.Errors.Any(error => error.Code == "InvalidToken")
+                ? PasswordResetCompletionStatus.InvalidToken
+                : PasswordResetCompletionStatus.InvalidPassword;
+            return new PasswordResetCompletionResult(status);
+        }
+
+        user.MustChangePassword = false;
+        user.AccessFailedCount = 0;
+        user.LockoutEnd = null;
+        user.UpdatedAt = timeProvider.GetUtcNow();
+        EnsureSucceeded(
+            await userManager.UpdateAsync(user),
+            "complete the password reset state");
+
+        dbContext.AuditEvents.Add(new AuditEvent
+        {
+            Id = Guid.NewGuid(),
+            ActorUserId = null,
+            Action = "password_reset.completed",
+            EntityType = "User",
+            EntityId = user.Id.ToString(),
+            Result = "Success",
+            OccurredAt = timeProvider.GetUtcNow(),
+            Metadata = "{}",
+        });
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        var notification = await NotifyPasswordChangedAsync(user);
+        return new PasswordResetCompletionResult(
+            PasswordResetCompletionStatus.Succeeded,
+            notification.Status);
+    }
+
     public Task SignOutAsync() => signInManager.SignOutAsync();
 
     private async Task<NotificationResult> NotifyPasswordChangedAsync(

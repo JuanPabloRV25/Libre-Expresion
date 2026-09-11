@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +13,10 @@ namespace Portal.IntegrationTests;
 public sealed class PortalApiFactory : WebApplicationFactory<Program>
 {
     private readonly string databaseName = $"portal-auth-{Guid.NewGuid():N}";
+    private readonly TimeSpan? passwordResetTokenLifespan;
+
+    public PortalApiFactory(TimeSpan? passwordResetTokenLifespan = null) =>
+        this.passwordResetTokenLifespan = passwordResetTokenLifespan;
 
     public TestEmailSender EmailSender { get; } = new();
 
@@ -38,6 +43,13 @@ public sealed class PortalApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<ApplicationDbContext>();
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseInMemoryDatabase(databaseName));
+
+            if (passwordResetTokenLifespan.HasValue)
+            {
+                services.PostConfigure<DataProtectionTokenProviderOptions>(options =>
+                    options.TokenLifespan = passwordResetTokenLifespan.Value);
+            }
+
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(EmailSender);
         });

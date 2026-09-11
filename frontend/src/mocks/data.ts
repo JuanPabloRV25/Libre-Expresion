@@ -10,7 +10,7 @@ export const permissions: Permission[] = [
   { code: 'users.edit', name: 'Editar usuarios', module: 'Usuarios', description: 'Actualización de información general.' },
   { code: 'users.activate', name: 'Activar o inactivar usuarios', module: 'Usuarios', description: 'Control del estado de acceso.' },
   { code: 'users.assign_roles', name: 'Asignar roles', module: 'Usuarios', description: 'Asociación de responsabilidades.' },
-  { code: 'users.reset_password', name: 'Restablecer contraseñas', module: 'Usuarios', description: 'Generación de acceso temporal.' },
+  { code: 'users.reset_password', name: 'Restablecer contraseñas', module: 'Usuarios', description: 'Envío de un enlace temporal seguro.' },
   { code: 'roles.view', name: 'Ver roles', module: 'Roles', description: 'Consulta de roles parametrizables.' },
   { code: 'roles.create', name: 'Crear roles', module: 'Roles', description: 'Creación de responsabilidades.' },
   { code: 'roles.edit', name: 'Editar roles', module: 'Roles', description: 'Actualización de roles.' },
@@ -43,12 +43,12 @@ export const roles: Role[] = [
 ]
 
 export const users: PortalUser[] = [
-  { id: 1, documentType: 'CC', document: '10000001', firstName: 'Laura', lastName: 'Mendoza', email: 'laura.mendoza@demo.local', areaId: 1, roleIds: ['1'], status: 'active', password: '10000001', mustChangePassword: false, demoProfile: 'superadmin' },
-  { id: 2, documentType: 'CC', document: '10000002', firstName: 'Diego', lastName: 'Torres', email: 'diego.torres@demo.local', areaId: 2, roleIds: ['6'], status: 'active', password: '10000002', mustChangePassword: false, demoProfile: 'limited' },
-  { id: 3, documentType: 'CC', document: '10000003', firstName: 'Mariana', lastName: 'Ruiz', email: 'mariana.ruiz@demo.local', areaId: 3, roleIds: ['3'], status: 'active', password: '10000003', mustChangePassword: false, demoProfile: 'standard' },
-  { id: 4, documentType: 'CC', document: '10000004', firstName: 'Andrés', lastName: 'Pardo', email: 'andres.pardo@demo.local', areaId: 3, roleIds: ['2', '3'], status: 'active', password: '10000004', mustChangePassword: true, demoProfile: 'first-login' },
-  { id: 5, documentType: 'CC', document: '10000005', firstName: 'Camilo', lastName: 'Vargas', email: 'camilo.vargas@demo.local', areaId: 2, roleIds: ['5'], status: 'inactive', password: '10000005', mustChangePassword: false, demoProfile: 'inactive' },
-  { id: 6, documentType: 'CC', document: '10000006', firstName: 'Natalia', lastName: 'Cárdenas', email: 'natalia.cardenas@demo.local', areaId: 4, roleIds: ['4'], status: 'active', password: '10000006', mustChangePassword: false },
-  { id: 7, documentType: 'CC', document: '10000007', firstName: 'Valentina', lastName: 'Rojas', email: 'valentina.rojas@demo.local', areaId: 6, roleIds: ['7'], status: 'active', password: '10000007', mustChangePassword: false },
-  { id: 8, documentType: 'CC', document: '10000008', firstName: 'Sebastián', lastName: 'López', email: 'sebastian.lopez@demo.local', areaId: 5, roleIds: ['8'], status: 'active', password: '10000008', mustChangePassword: false },
+  { id: 1, documentType: 'CC', document: '10000001', firstName: 'Laura', lastName: 'Mendoza', email: 'laura.mendoza@demo.local', areaId: 1, roleIds: ['1'], status: 'active', mustChangePassword: false, demoProfile: 'superadmin' },
+  { id: 2, documentType: 'CC', document: '10000002', firstName: 'Diego', lastName: 'Torres', email: 'diego.torres@demo.local', areaId: 2, roleIds: ['6'], status: 'active', mustChangePassword: false, demoProfile: 'limited' },
+  { id: 3, documentType: 'CC', document: '10000003', firstName: 'Mariana', lastName: 'Ruiz', email: 'mariana.ruiz@demo.local', areaId: 3, roleIds: ['3'], status: 'active', mustChangePassword: false, demoProfile: 'standard' },
+  { id: 4, documentType: 'CC', document: '10000004', firstName: 'Andrés', lastName: 'Pardo', email: 'andres.pardo@demo.local', areaId: 3, roleIds: ['2', '3'], status: 'active', mustChangePassword: true, demoProfile: 'first-login' },
+  { id: 5, documentType: 'CC', document: '10000005', firstName: 'Camilo', lastName: 'Vargas', email: 'camilo.vargas@demo.local', areaId: 2, roleIds: ['5'], status: 'inactive', mustChangePassword: false, demoProfile: 'inactive' },
+  { id: 6, documentType: 'CC', document: '10000006', firstName: 'Natalia', lastName: 'Cárdenas', email: 'natalia.cardenas@demo.local', areaId: 4, roleIds: ['4'], status: 'active', mustChangePassword: false },
+  { id: 7, documentType: 'CC', document: '10000007', firstName: 'Valentina', lastName: 'Rojas', email: 'valentina.rojas@demo.local', areaId: 6, roleIds: ['7'], status: 'active', mustChangePassword: false },
+  { id: 8, documentType: 'CC', document: '10000008', firstName: 'Sebastián', lastName: 'López', email: 'sebastian.lopez@demo.local', areaId: 5, roleIds: ['8'], status: 'active', mustChangePassword: false },
 ]

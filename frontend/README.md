@@ -35,4 +35,4 @@ Copie `.env.example` a `.env` cuando necesite personalizar la integración:
 
 ## Acceso en DEV
 
-Las cuentas y credenciales de desarrollo se administran mediante la configuración protegida del entorno y no se documentan en el repositorio. Los usuarios creados o restablecidos deben completar el cambio obligatorio de contraseña antes de acceder al resto del Portal.
+Las cuentas y credenciales de desarrollo se administran mediante la configuración protegida del entorno y no se documentan en el repositorio. Los usuarios normales se crean sin contraseña y reciben por correo un enlace temporal, válido durante 2 horas y para un solo uso, con el que establecen su contraseña antes de iniciar sesión. Un restablecimiento administrativo invalida la contraseña y las sesiones anteriores y envía un enlace nuevo. El Superadmin bootstrap conserva su flujo especial de primer ingreso.

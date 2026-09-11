@@ -10,6 +10,7 @@ public sealed class RequiredPasswordChangeMiddleware(RequestDelegate next)
         new("/api/auth/me"),
         new("/api/auth/logout"),
         new("/api/auth/change-required-password"),
+        new("/api/auth/reset-password"),
         new("/health"),
         new("/api/health"),
     ];

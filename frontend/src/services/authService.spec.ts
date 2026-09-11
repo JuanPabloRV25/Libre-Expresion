@@ -72,6 +72,33 @@ describe('authService real API contract', () => {
     })
   })
 
+  it('consumes a password link anonymously with antiforgery', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ token: 'csrf-token' }))
+      .mockResolvedValueOnce(jsonResponse({ passwordReset: true, notificationStatus: 'sent' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(authService.resetPassword(
+      '3f6300de-87b4-4e92-953c-333690981b37',
+      'encoded-token',
+      'NewSecret!1',
+      'NewSecret!1',
+    )).resolves.toBe('sent')
+
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/auth/reset-password', expect.objectContaining({
+      method: 'POST',
+      credentials: 'include',
+      headers: expect.objectContaining({ 'X-XSRF-TOKEN': 'csrf-token' }),
+    }))
+    const request = fetchMock.mock.calls[1]?.[1] as RequestInit
+    expect(JSON.parse(request.body as string)).toEqual({
+      userId: '3f6300de-87b4-4e92-953c-333690981b37',
+      token: 'encoded-token',
+      newPassword: 'NewSecret!1',
+      confirmPassword: 'NewSecret!1',
+    })
+  })
+
   it('returns failed when a completed password change could not be notified', async () => {
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(jsonResponse({ token: 'csrf-token' }))

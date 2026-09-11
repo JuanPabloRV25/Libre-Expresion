@@ -71,19 +71,84 @@ No ejecutar `docker compose down -v`: esa opción elimina volúmenes administrad
 por Compose. Tampoco se deben eliminar manualmente `portal-dev-pgdata` ni
 `portal-libre-expresion-dev-mailpit-data`.
 
-## Notificaciones DEV
+## Contraseñas y notificaciones DEV
 
-La API envía mediante SMTP a Mailpit usando las variables `Email__*` de
-`.env.dev`: `Enabled`, `Host`, `Port`, `UseTls`, `Username`, `Password`,
-`FromName`, `FromAddress`, `PortalBaseUrl` y `EnvironmentLabel`. Los valores DEV
-usan el host Docker `mailpit`, puerto interno `1025`, sin TLS ni credenciales,
-remitente ficticio `notificaciones@libreexpresion.test` y etiqueta
-`DESARROLLO`. No se deben documentar ni versionar secretos reales.
+Los usuarios creados desde el Portal no reciben una contraseña temporal. Se
+crean sin `PasswordHash` y reciben un enlace personal para establecerla. Un
+restablecimiento administrativo invalida la contraseña y las sesiones
+anteriores y envía un enlace nuevo. Ambos enlaces usan tokens estándar de
+ASP.NET Core Identity, no se guardan en la base de datos ni en auditoría, duran
+2 horas y quedan invalidados al utilizarse o al emitirse un restablecimiento
+posterior. El Superadmin bootstrap conserva su mecanismo especial existente.
+La pantalla retira el token de la barra al cargar y la configuración web evita
+registrar queries o referencias que puedan contenerlo. Una cuenta inactiva puede
+establecer su contraseña con el enlace, pero no puede iniciar sesión hasta ser
+activada por un administrador.
 
-Mailpit es exclusivo de DEV. Su UI permite revisar los correos capturados en
-`http://127.0.0.1:8025/` desde el PC. Los mensajes se almacenan en SQLite dentro
-del volumen nombrado `portal-libre-expresion-dev-mailpit-data`. Producción usará
-el proveedor corporativo pendiente de definición por Libre Expresión.
+Si una entrega falla, el usuario permanece en estado seguro y pendiente. Un
+administrador con `users.reset_password` puede utilizar **Enviar
+restablecimiento** en el detalle del usuario para generar un enlace nuevo.
+
+La misma implementación `IEmailSender`/SMTP admite dos modos de DEV, elegidos
+exclusivamente mediante `.env.dev`. Variables disponibles:
+
+- `Email__Enabled`: habilita la entrega.
+- `Email__Host` y `Email__Port`: servidor y puerto SMTP.
+- `Email__UseTls`: `true` para STARTTLS explícito.
+- `Email__UseSsl`: `true` para SSL/TLS desde el inicio de la conexión.
+- `Email__Username` y `Email__Password`: credenciales SMTP; ambas deben estar
+  presentes o ambas vacías. Si se utilizan credenciales, `UseTls` o `UseSsl`
+  debe estar habilitado para impedir autenticación SMTP en texto plano.
+- `Email__FromAddress` y `Email__FromName`: remitente.
+- `Email__PortalBaseUrl`: origen público DEV usado para construir el enlace.
+- `Email__EnvironmentLabel`: etiqueta visible del entorno.
+
+`Email__UseTls` y `Email__UseSsl` son mutuamente excluyentes.
+
+### SMTP real con una cuenta personal
+
+Completar en el archivo ignorado `.env.dev` los valores entregados por el
+proveedor de correo; no escribirlos en archivos versionados:
+
+```dotenv
+Email__Enabled=true
+Email__Host=<host-smtp-del-proveedor>
+Email__Port=<puerto-smtp-del-proveedor>
+Email__UseTls=<true-o-false>
+Email__UseSsl=<true-o-false>
+Email__Username=<usuario-smtp>
+Email__Password=<contraseña-o-app-password>
+Email__FromName=Portal Libre Expresión
+Email__FromAddress=<correo-personal-remitente>
+Email__PortalBaseUrl=http://127.0.0.1:5173
+Email__EnvironmentLabel=DESARROLLO
+```
+
+Usar exactamente el modo, host y puerto documentados por el proveedor. El
+repositorio no contiene ni presupone credenciales reales.
+
+### Volver a Mailpit
+
+Restaurar estas variables en `.env.dev`:
+
+```dotenv
+Email__Enabled=true
+Email__Host=mailpit
+Email__Port=1025
+Email__UseTls=false
+Email__UseSsl=false
+Email__Username=
+Email__Password=
+Email__FromName=Portal Libre Expresión
+Email__FromAddress=notificaciones@libreexpresion.test
+Email__PortalBaseUrl=http://127.0.0.1:5173
+Email__EnvironmentLabel=DESARROLLO
+```
+
+La UI de Mailpit está disponible en `http://127.0.0.1:8025/` desde el PC. Sus
+mensajes se almacenan en el volumen `portal-libre-expresion-dev-mailpit-data`.
+Las claves de Data Protection que validan los tokens se conservan en
+`portal-libre-expresion-dev-api-keys`.
 
 ## Inspección de migraciones
 

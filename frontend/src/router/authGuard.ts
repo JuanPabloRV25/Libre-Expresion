@@ -6,9 +6,10 @@ export interface AuthGuardState {
 
 export function resolveAuthNavigation(
   path: string,
-  meta: { requiresAuth?: boolean; permission?: string },
+  meta: { requiresAuth?: boolean; permission?: string; publicPasswordReset?: boolean },
   auth: AuthGuardState,
 ) {
+  if (meta.publicPasswordReset) return true
   if (auth.isAuthenticated && auth.mustChangePassword && path !== '/first-login') return '/first-login'
   if (path === '/first-login' && (!auth.isAuthenticated || !auth.mustChangePassword)) return auth.isAuthenticated ? '/home' : '/login'
   if (meta.requiresAuth && !auth.isAuthenticated) return '/login'

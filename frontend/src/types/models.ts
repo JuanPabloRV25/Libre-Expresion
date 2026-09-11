@@ -32,7 +32,6 @@ export interface PortalUser {
   areaId: number
   roleIds: string[]
   status: UserStatus
-  password: string
   mustChangePassword: boolean
   demoProfile?: 'superadmin' | 'limited' | 'standard' | 'first-login' | 'inactive'
 }

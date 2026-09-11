@@ -9,6 +9,7 @@ x-api-environment: &api-environment
   Email__Host: ${Email__Host:-}
   Email__Port: ${Email__Port:-25}
   Email__UseTls: ${Email__UseTls:-false}
+  Email__UseSsl: ${Email__UseSsl:-false}
   Email__Username: ${Email__Username:-}
   Email__Password: ${Email__Password:-}
   Email__FromName: ${Email__FromName:-}

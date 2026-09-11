@@ -91,12 +91,12 @@ async function submit() {
 <template>
   <AppLayout>
     <RouterLink class="back-link" to="/users">← Volver a usuarios</RouterLink>
-    <PageHeader :eyebrow="`Portal · ${id ? 'Editar usuario' : 'Crear usuario'}`" :title="id ? 'Editar usuario' : 'Crear usuario'" :description="id ? 'Actualiza la información general y los roles asignados.' : 'Registra un usuario. Su contraseña temporal será su número de documento.'" />
+    <PageHeader :eyebrow="`Portal · ${id ? 'Editar usuario' : 'Crear usuario'}`" :title="id ? 'Editar usuario' : 'Crear usuario'" :description="id ? 'Actualiza la información general y los roles asignados.' : 'Registra un usuario. Recibirá por correo un enlace para establecer su contraseña.'" />
     <form class="panel form-panel" @submit.prevent="submit">
       <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
       <div class="form-section-title"><p class="eyebrow">INFORMACIÓN GENERAL</p><h2>Datos del usuario</h2><span>Campos con * obligatorios</span></div>
       <div class="form-grid">
-        <label>Número de documento <em>*</em><input v-model="form.documentNumber" required maxlength="256" :disabled="Boolean(id)" /><small>{{ id ? 'El documento es el identificador de acceso y no puede modificarse.' : 'También será la contraseña temporal para el primer ingreso.' }}</small></label>
+        <label>Número de documento <em>*</em><input v-model="form.documentNumber" required maxlength="256" :disabled="Boolean(id)" /><small>{{ id ? 'El documento es el identificador de acceso y no puede modificarse.' : 'Será el identificador de acceso; nunca se utilizará como contraseña.' }}</small></label>
         <label>Nombre <em>*</em><input v-model="form.firstName" required maxlength="120" /></label>
         <label>Apellidos <em>*</em><input v-model="form.lastName" required maxlength="120" /></label>
         <label>Correo electrónico <em>*</em><input v-model="form.email" type="email" required maxlength="256" /></label>

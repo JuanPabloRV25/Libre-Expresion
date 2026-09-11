@@ -27,3 +27,15 @@ public enum PasswordChangeStatus
 public sealed record PasswordChangeResult(
     PasswordChangeStatus Status,
     string? NotificationStatus = null);
+
+public enum PasswordResetCompletionStatus
+{
+    Succeeded,
+    InvalidToken,
+    ConfirmationMismatch,
+    InvalidPassword,
+}
+
+public sealed record PasswordResetCompletionResult(
+    PasswordResetCompletionStatus Status,
+    string? NotificationStatus = null);

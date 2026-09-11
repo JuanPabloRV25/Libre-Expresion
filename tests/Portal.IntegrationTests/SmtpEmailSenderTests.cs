@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Options;
+using MailKit.Security;
+using Portal.Infrastructure;
 using Portal.Application.Notifications;
 using Portal.Infrastructure.Notifications;
 
@@ -33,4 +35,64 @@ public sealed class SmtpEmailSenderTests
         Assert.Contains("HTML", mimeMessage.HtmlBody);
         Assert.Equal("Texto", mimeMessage.TextBody);
     }
+
+    [Fact]
+    public void Socket_security_mode_uses_configuration_only()
+    {
+        Assert.Equal(
+            SecureSocketOptions.None,
+            SmtpEmailSender.ResolveSocketOptions(new EmailOptions()));
+        Assert.Equal(
+            SecureSocketOptions.StartTls,
+            SmtpEmailSender.ResolveSocketOptions(new EmailOptions
+            {
+                UseTls = true,
+            }));
+        Assert.Equal(
+            SecureSocketOptions.SslOnConnect,
+            SmtpEmailSender.ResolveSocketOptions(new EmailOptions
+            {
+                UseSsl = true,
+            }));
+    }
+
+    [Fact]
+    public void Email_configuration_requires_encryption_when_credentials_are_present()
+    {
+        Assert.True(DependencyInjection.IsValidEmailConfiguration(
+            ValidEmailOptions()));
+        Assert.False(DependencyInjection.IsValidEmailConfiguration(
+            ValidEmailOptions(
+                username: "smtp-user",
+                password: "smtp-password")));
+        Assert.True(DependencyInjection.IsValidEmailConfiguration(
+            ValidEmailOptions(
+                useTls: true,
+                username: "smtp-user",
+                password: "smtp-password")));
+        Assert.True(DependencyInjection.IsValidEmailConfiguration(
+            ValidEmailOptions(
+                useSsl: true,
+                username: "smtp-user",
+                password: "smtp-password")));
+    }
+
+    private static EmailOptions ValidEmailOptions(
+        bool useTls = false,
+        bool useSsl = false,
+        string username = "",
+        string password = "") => new()
+        {
+            Enabled = true,
+            Host = "mailpit",
+            Port = 1025,
+            UseTls = useTls,
+            UseSsl = useSsl,
+            Username = username,
+            Password = password,
+            FromName = "Portal Libre Expresión",
+            FromAddress = "notificaciones@libreexpresion.test",
+            PortalBaseUrl = "http://127.0.0.1:5173",
+            EnvironmentLabel = "DESARROLLO",
+        };
 }

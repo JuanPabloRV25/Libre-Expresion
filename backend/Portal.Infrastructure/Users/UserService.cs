@@ -18,7 +18,6 @@ namespace Portal.Infrastructure.Users;
 public sealed class UserService(
     ApplicationDbContext dbContext,
     UserManager<ApplicationUser> userManager,
-    IPasswordHasher<ApplicationUser> passwordHasher,
     ICurrentUserService currentUserService,
     INotificationService notificationService,
     TimeProvider timeProvider) : IUserService
@@ -151,10 +150,6 @@ public sealed class UserService(
             UpdatedAt = now,
         };
 
-        TemporaryCredential.SetDocumentBasedPassword(
-            user,
-            validation.DocumentNumber!,
-            passwordHasher);
         var identityResult = await userManager.CreateAsync(user);
         if (!identityResult.Succeeded)
         {
@@ -184,8 +179,11 @@ public sealed class UserService(
         await dbContext.SaveChangesAsync(cancellationToken);
         await CommitAsync(transaction, cancellationToken);
 
+        var encodedPasswordToken = PasswordResetTokenCodec.Encode(
+            await userManager.GeneratePasswordResetTokenAsync(user));
         var notification = await notificationService.NotifyUserCreatedAsync(
             ToNotificationRecipient(user),
+            encodedPasswordToken,
             CancellationToken.None);
         await AddNotificationAuditAsync(
             user.Id,
@@ -236,6 +234,10 @@ public sealed class UserService(
             IsolationLevel.ReadCommitted,
             cancellationToken);
         var previousEmail = user.Email;
+        var emailChanged = !string.Equals(
+            previousEmail,
+            validation.Email,
+            StringComparison.OrdinalIgnoreCase);
         user.FirstName = validation.FirstName!;
         user.LastName = validation.LastName!;
         user.Email = validation.Email;
@@ -247,6 +249,15 @@ public sealed class UserService(
         if (!identityResult.Succeeded)
         {
             return MapIdentityFailure(identityResult);
+        }
+
+        if (emailChanged)
+        {
+            identityResult = await userManager.UpdateSecurityStampAsync(user);
+            if (!identityResult.Succeeded)
+            {
+                return MapIdentityFailure(identityResult);
+            }
         }
 
         await AddAuditAsync(
@@ -291,7 +302,9 @@ public sealed class UserService(
 
         user.IsActive = isActive;
         user.UpdatedAt = timeProvider.GetUtcNow();
-        var identityResult = await userManager.UpdateSecurityStampAsync(user);
+        var identityResult = isActive
+            ? await userManager.UpdateAsync(user)
+            : await userManager.UpdateSecurityStampAsync(user);
         if (!identityResult.Succeeded)
         {
             return MapIdentityFailure(identityResult);
@@ -421,32 +434,45 @@ public sealed class UserService(
         }
 
         await using var transaction = await BeginTransactionAsync(
-            IsolationLevel.ReadCommitted,
+            IsolationLevel.Serializable,
             cancellationToken);
-        var documentNumber = user.UserName
-            ?? throw new InvalidOperationException("The user does not have a document number.");
-        TemporaryCredential.SetDocumentBasedPassword(
-            user,
-            documentNumber,
-            passwordHasher);
+        if (await WouldRemoveLastActiveSuperadminAsync(user, cancellationToken))
+        {
+            return new UserOperationResult(
+                UserOperationStatus.Conflict,
+                ErrorCode: "last_superadmin_password_reset_forbidden",
+                ErrorMessage: "No se puede restablecer la contraseña del único Superadmin activo. Utiliza el cambio de contraseña del perfil.");
+        }
+
+        var identityResult = await userManager.HasPasswordAsync(user)
+            ? await userManager.RemovePasswordAsync(user)
+            : await userManager.UpdateSecurityStampAsync(user);
+        if (!identityResult.Succeeded)
+        {
+            return MapIdentityFailure(identityResult);
+        }
+
         user.MustChangePassword = true;
         user.UpdatedAt = timeProvider.GetUtcNow();
-        var identityResult = await userManager.UpdateSecurityStampAsync(user);
+        identityResult = await userManager.UpdateAsync(user);
         if (!identityResult.Succeeded)
         {
             return MapIdentityFailure(identityResult);
         }
 
         await AddAuditAsync(
-            "user.password_reset",
+            "password_reset.requested",
             user.Id,
             new { },
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await CommitAsync(transaction, cancellationToken);
 
+        var encodedPasswordToken = PasswordResetTokenCodec.Encode(
+            await userManager.GeneratePasswordResetTokenAsync(user));
         var notification = await notificationService.NotifyPasswordResetAsync(
             ToNotificationRecipient(user),
+            encodedPasswordToken,
             CancellationToken.None);
         await AddNotificationAuditAsync(
             user.Id,

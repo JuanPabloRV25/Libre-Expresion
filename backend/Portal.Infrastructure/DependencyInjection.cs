@@ -45,11 +45,15 @@ public static class DependencyInjection
             {
                 options.Stores.SchemaVersion = IdentitySchemaVersions.Version2;
                 options.User.RequireUniqueEmail = true;
+                options.Password.RequiredLength = 8;
             })
             .AddRoles<ApplicationRole>()
             .AddSignInManager()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+        services.Configure<DataProtectionTokenProviderOptions>(options =>
+            options.TokenLifespan = TimeSpan.FromHours(2));
 
         services
             .AddAuthentication(options =>
@@ -94,9 +98,15 @@ public static class DependencyInjection
         return services;
     }
 
-    private static bool IsValidEmailConfiguration(EmailOptions options) =>
+    internal static bool IsValidEmailConfiguration(EmailOptions options) =>
         !string.IsNullOrWhiteSpace(options.Host)
         && options.Port is > 0 and <= 65_535
+        && !(options.UseTls && options.UseSsl)
+        && (string.IsNullOrWhiteSpace(options.Username)
+            == string.IsNullOrWhiteSpace(options.Password))
+        && (string.IsNullOrWhiteSpace(options.Username)
+            || options.UseTls
+            || options.UseSsl)
         && !string.IsNullOrWhiteSpace(options.FromName)
         && System.Net.Mail.MailAddress.TryCreate(options.FromAddress, out _)
         && Uri.TryCreate(options.PortalBaseUrl, UriKind.Absolute, out var portalUri)

@@ -17,6 +17,12 @@ describe('authentication navigation guard', () => {
     expect(resolveAuthNavigation('/home', { requiresAuth: true }, state({ mustChangePassword: true }))).toBe('/first-login')
   })
 
+  it('allows the public password link for anonymous and pending sessions', () => {
+    const meta = { publicPasswordReset: true }
+    expect(resolveAuthNavigation('/reset-password', meta, state({ isAuthenticated: false }))).toBe(true)
+    expect(resolveAuthNavigation('/reset-password', meta, state({ mustChangePassword: true }))).toBe(true)
+  })
+
   it('denies a route whose effective permission is missing', () => {
     expect(resolveAuthNavigation('/roles', { requiresAuth: true, permission: 'roles.view' }, state())).toBe('/unauthorized')
   })

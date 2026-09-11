@@ -4,6 +4,7 @@ import { resolveAuthNavigation } from './authGuard'
 import LoginView from '../views/LoginView.vue'
 import FirstLoginView from '../views/FirstLoginView.vue'
 import PasswordUpdatedView from '../views/PasswordUpdatedView.vue'
+import ResetPasswordView from '../views/ResetPasswordView.vue'
 import HomeView from '../views/HomeView.vue'
 import UsersView from '../views/UsersView.vue'
 import UserFormView from '../views/UserFormView.vue'
@@ -23,6 +24,7 @@ declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
     permission?: string
+    publicPasswordReset?: boolean
     title?: string
   }
 }
@@ -35,6 +37,7 @@ export const router = createRouter({
     { path: '/first-login', component: FirstLoginView, meta: { title: 'Primer ingreso' } },
     { path: '/password-updated', component: PasswordUpdatedView, meta: { title: 'Contraseña actualizada' } },
     { path: '/home', component: HomeView, meta: { requiresAuth: true, title: 'Inicio' } },
+    { path: '/reset-password', component: ResetPasswordView, meta: { publicPasswordReset: true, title: 'Establecer contraseña' } },
     { path: '/users', component: UsersView, meta: { requiresAuth: true, permission: 'users.view', title: 'Usuarios' } },
     { path: '/users/new', component: UserFormView, meta: { requiresAuth: true, permission: 'users.create', title: 'Crear usuario' } },
     { path: '/users/:id', component: UserDetailView, meta: { requiresAuth: true, permission: 'users.view', title: 'Detalle de usuario' } },
