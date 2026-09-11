@@ -3,6 +3,12 @@
 .env
 .env.*
 !.env.example
+secrets/
+**/secrets/
+*.key
+*.pem
+*.pfx
+*.p12
 **/bin
 **/obj
 frontend/node_modules

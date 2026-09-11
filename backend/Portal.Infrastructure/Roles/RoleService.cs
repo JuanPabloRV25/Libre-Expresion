@@ -210,6 +210,7 @@ public sealed class RoleService(
         IReadOnlyList<string> permissionCodes,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await BeginTransactionAsync(cancellationToken);
         var role = await dbContext.Roles
             .SingleOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
         if (role is null)
@@ -275,8 +276,32 @@ public sealed class RoleService(
                 (await BuildDtosAsync([role], cancellationToken)).Single());
         }
 
-        await using var transaction = await BeginTransactionAsync(cancellationToken);
         var currentUser = await currentUserService.GetCurrentAsync(cancellationToken);
+        if (currentUser is null)
+        {
+            return PermissionDelegationForbidden();
+        }
+
+        var actorPermissionCodes = await (
+                from userRole in dbContext.Set<ApplicationUserRole>().AsNoTracking()
+                join actorRole in dbContext.Roles.AsNoTracking()
+                    on userRole.RoleId equals actorRole.Id
+                join rolePermission in dbContext.RolePermissions.AsNoTracking()
+                    on actorRole.Id equals rolePermission.RoleId
+                join permission in dbContext.Permissions.AsNoTracking()
+                    on rolePermission.PermissionId equals permission.Id
+                where userRole.UserId == currentUser.Id
+                    && actorRole.IsActive
+                    && permission.IsActive
+                select permission.Code)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+        var actorPermissionSet = actorPermissionCodes.ToHashSet(StringComparer.Ordinal);
+        if (addedCodes.Any(code => !actorPermissionSet.Contains(code)))
+        {
+            return PermissionDelegationForbidden();
+        }
+
         var now = timeProvider.GetUtcNow();
         var permissionsByCode = permissions.ToDictionary(
             permission => permission.Code,
@@ -451,4 +476,9 @@ public sealed class RoleService(
         RoleOperationStatus.Protected,
         ErrorCode: "system_role_protected",
         ErrorMessage: message);
+
+    private static RoleOperationResult PermissionDelegationForbidden() => new(
+        RoleOperationStatus.Protected,
+        ErrorCode: "permission_delegation_forbidden",
+        ErrorMessage: "No puedes delegar permisos que no posees.");
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Domain.Areas;
+using Portal.Domain.Permissions;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -52,6 +53,74 @@ public sealed class UserEndpointsTests
             "/api/users",
             NewUserRequest("7000000012", "csrf@example.test", null, []));
         Assert.Equal(HttpStatusCode.BadRequest, withoutToken.StatusCode);
+    }
+
+    [Fact]
+    public async Task Creator_without_role_delegation_cannot_inject_a_privileged_role()
+    {
+        await using var factory = new PortalApiFactory();
+        await SeedSuperadminAsync(factory);
+        var actor = await CreatePermissionedUserAsync(
+            factory,
+            [PermissionCodes.UsersCreate]);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var superadminRoleId = await context.Roles
+            .Where(role => role.IsSystem)
+            .Select(role => role.Id)
+            .SingleAsync();
+
+        using var client = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(client, actor.Document, LimitedPassword)).StatusCode);
+        var response = await SendWithCsrfAsync(
+            client,
+            HttpMethod.Post,
+            "/api/users",
+            NewUserRequest(
+                $"7{Random.Shared.NextInt64(100000000, 999999999)}",
+                $"injection-{Guid.NewGuid():N}@example.test",
+                null,
+                [superadminRoleId]));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(
+            "role_assignment_forbidden",
+            (await response.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("code")
+                .GetString());
+    }
+
+    [Fact]
+    public async Task Role_assigner_cannot_self_assign_a_permission_superset()
+    {
+        await using var factory = new PortalApiFactory();
+        await SeedSuperadminAsync(factory);
+        var actor = await CreatePermissionedUserAsync(
+            factory,
+            [PermissionCodes.UsersAssignRoles]);
+        var elevatedRoleId = await CreateRoleWithPermissionsAsync(
+            factory,
+            [PermissionCodes.UsersView]);
+
+        using var client = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(client, actor.Document, LimitedPassword)).StatusCode);
+        var response = await SendWithCsrfAsync(
+            client,
+            HttpMethod.Put,
+            $"/api/users/{actor.Id}/roles",
+            new { roleIds = new[] { actor.RoleId, elevatedRoleId } });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(
+            "role_assignment_forbidden",
+            (await response.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("code")
+                .GetString());
     }
 
     [Fact]
@@ -453,6 +522,67 @@ public sealed class UserEndpointsTests
         CreatedAt = now,
         UpdatedAt = now,
     };
+
+    private static async Task<(Guid Id, Guid RoleId, string Document)>
+        CreatePermissionedUserAsync(
+            PortalApiFactory factory,
+            IReadOnlyCollection<string> permissionCodes)
+    {
+        var roleId = await CreateRoleWithPermissionsAsync(factory, permissionCodes);
+        var document = $"8{Random.Shared.NextInt64(100000000, 999999999)}";
+        await using var scope = factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var now = DateTimeOffset.UtcNow;
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = document,
+            Email = $"delegator-{Guid.NewGuid():N}@example.test",
+            FirstName = "Delegator",
+            LastName = "Limited",
+            IsActive = true,
+            MustChangePassword = false,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        Assert.True((await userManager.CreateAsync(user, LimitedPassword)).Succeeded);
+        context.Set<ApplicationUserRole>().Add(new ApplicationUserRole
+        {
+            UserId = user.Id,
+            RoleId = roleId,
+            AssignedAt = now,
+        });
+        await context.SaveChangesAsync();
+        return (user.Id, roleId, document);
+    }
+
+    private static async Task<Guid> CreateRoleWithPermissionsAsync(
+        PortalApiFactory factory,
+        IReadOnlyCollection<string> permissionCodes)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var now = DateTimeOffset.UtcNow;
+        var role = NewRole("Delegación", now);
+        Assert.True((await roleManager.CreateAsync(role)).Succeeded);
+        var permissions = await context.Permissions
+            .Where(permission => permissionCodes.Contains(permission.Code))
+            .ToArrayAsync();
+        foreach (var permission in permissions)
+        {
+            context.RolePermissions.Add(new RolePermission
+            {
+                RoleId = role.Id,
+                PermissionId = permission.Id,
+                AssignedAt = now,
+            });
+        }
+
+        await context.SaveChangesAsync();
+        return role.Id;
+    }
 
     private static Task<HttpResponseMessage> LoginAsync(
         HttpClient client,

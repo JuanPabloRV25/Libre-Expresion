@@ -24,11 +24,12 @@ const form = reactive({
 
 const availableAreas = computed(() => areas.value.filter((area) => area.isActive || area.id === form.areaId))
 const availableRoles = computed(() => roles.value.filter((role) => role.isActive || form.roleIds.includes(role.id)))
-const canAssignRoles = computed(() => !id.value || auth.hasPermission('users.assign_roles'))
+const canAssignRoles = computed(() => auth.hasPermission('users.assign_roles'))
 
 onMounted(async () => {
   try {
-    ;[areas.value, roles.value] = await Promise.all([areasService.list(), rolesService.list()])
+    areas.value = await areasService.list()
+    if (canAssignRoles.value) roles.value = await rolesService.list()
     if (!id.value) return
     const user = await usersService.get(id.value)
     Object.assign(form, {
@@ -72,7 +73,7 @@ async function submit() {
       email: form.email,
       areaId: form.areaId || null,
       advisorCode: form.advisorCode || null,
-      roleIds: form.roleIds,
+      roleIds: canAssignRoles.value ? form.roleIds : [],
       isActive: form.isActive,
     })
     await router.push({

@@ -291,6 +291,38 @@ public sealed class RoleAndPermissionEndpointsTests
         }
     }
 
+    [Fact]
+    public async Task Permission_delegator_cannot_add_a_permission_they_do_not_have()
+    {
+        await using var factory = new PortalApiFactory();
+        await SeedSuperadminAsync(factory);
+        var actor = await CreatePermissionDelegatorAsync(factory);
+        using var client = factory.CreateClient();
+        Assert.Equal(
+            HttpStatusCode.OK,
+            (await LoginAsync(client, actor.Document, LimitedPassword)).StatusCode);
+
+        var response = await SendWithCsrfAsync(
+            client,
+            HttpMethod.Put,
+            $"/api/roles/{actor.RoleId}/permissions",
+            new
+            {
+                permissionCodes = new[]
+                {
+                    PermissionCodes.RolesAssignPermissions,
+                    PermissionCodes.UsersView,
+                },
+            });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal(
+            "permission_delegation_forbidden",
+            (await response.Content.ReadFromJsonAsync<JsonElement>())
+                .GetProperty("code")
+                .GetString());
+    }
+
     private static async Task<(Guid Id, string Document)> SeedSuperadminAsync(
         PortalApiFactory factory)
     {
@@ -342,6 +374,56 @@ public sealed class RoleAndPermissionEndpointsTests
         }
 
         return document;
+    }
+
+    private static async Task<(Guid RoleId, string Document)>
+        CreatePermissionDelegatorAsync(PortalApiFactory factory)
+    {
+        var document = $"8{Random.Shared.NextInt64(100000000, 999999999)}";
+        await using var scope = factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var now = DateTimeOffset.UtcNow;
+        var role = new ApplicationRole
+        {
+            Id = Guid.NewGuid(),
+            Name = $"Delegador-{Guid.NewGuid():N}",
+            Description = "Delegación limitada",
+            IsActive = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        Assert.True((await roleManager.CreateAsync(role)).Succeeded);
+        var permission = await context.Permissions.SingleAsync(candidate =>
+            candidate.Code == PermissionCodes.RolesAssignPermissions);
+        context.RolePermissions.Add(new RolePermission
+        {
+            RoleId = role.Id,
+            PermissionId = permission.Id,
+            AssignedAt = now,
+        });
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = document,
+            Email = $"permission-delegator-{Guid.NewGuid():N}@example.test",
+            FirstName = "Permission",
+            LastName = "Delegator",
+            IsActive = true,
+            MustChangePassword = false,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        Assert.True((await userManager.CreateAsync(user, LimitedPassword)).Succeeded);
+        context.Set<ApplicationUserRole>().Add(new ApplicationUserRole
+        {
+            UserId = user.Id,
+            RoleId = role.Id,
+            AssignedAt = now,
+        });
+        await context.SaveChangesAsync();
+        return (role.Id, document);
     }
 
     private static Task<HttpResponseMessage> LoginAsync(

@@ -2,7 +2,7 @@
 
 Frontend de la Fase 1 construido con Vue 3, TypeScript, Vite, Vue Router y Pinia.
 
-La interfaz reproduce la referencia funcional de Sites sin depender de su código. Los datos y la autenticación son simulados detrás de servicios y proveedores reemplazables; la única integración HTTP real de esta fase es `GET /health` del backend.
+La interfaz reproduce la referencia funcional de Sites sin depender de su código y está integrada con la API ASP.NET Core real. La autenticación utiliza la sesión segura por cookie del backend, protección antifalsificación y permisos efectivos obtenidos desde `/api/auth/me`.
 
 ## Ejecución con Docker
 
@@ -33,14 +33,6 @@ Copie `.env.example` a `.env` cuando necesite personalizar la integración:
 - `VITE_API_BASE_URL`: prefijo utilizado por el cliente HTTP; por defecto `/api`.
 - `VITE_DEV_PROXY_TARGET`: destino del proxy de desarrollo; por defecto `http://portal-api:8080`.
 
-## Perfiles de demostración
+## Acceso en DEV
 
-En todos los perfiles la contraseña inicial coincide con el número de documento.
-
-- `10000001`: Superadmin.
-- `10000002`: Administrador limitado.
-- `10000003`: Usuario interno estándar.
-- `10000004`: Primer ingreso con cambio obligatorio.
-- `10000005`: Cuenta inactiva.
-
-Estos datos existen únicamente para la simulación local y deberán reemplazarse por la API real en una fase posterior.
+Las cuentas y credenciales de desarrollo se administran mediante la configuración protegida del entorno y no se documentan en el repositorio. Los usuarios creados o restablecidos deben completar el cambio obligatorio de contraseña antes de acceder al resto del Portal.

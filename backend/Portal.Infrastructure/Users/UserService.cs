@@ -8,6 +8,7 @@ using Portal.Application.Identity;
 using Portal.Application.Notifications;
 using Portal.Application.Users;
 using Portal.Domain.Auditing;
+using Portal.Domain.Permissions;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -109,6 +110,9 @@ public sealed class UserService(
             return areaValidation;
         }
 
+        await using var transaction = await BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
         var roleValidation = await ValidateRolesAsync(
             command.RoleIds!,
             requireAllActive: true,
@@ -118,9 +122,18 @@ public sealed class UserService(
             return roleValidation.Error;
         }
 
-        await using var transaction = await BeginTransactionAsync(
-            IsolationLevel.ReadCommitted,
-            cancellationToken);
+        if (roleValidation.Roles!.Length > 0)
+        {
+            var delegationError = await ValidateRoleDelegationAsync(
+                roleValidation.Roles,
+                requireAssignmentPermission: true,
+                cancellationToken);
+            if (delegationError is not null)
+            {
+                return delegationError;
+            }
+        }
+
         var now = timeProvider.GetUtcNow();
         var actor = await currentUserService.GetCurrentAsync(cancellationToken);
         var user = new ApplicationUser
@@ -307,6 +320,9 @@ public sealed class UserService(
             return InvalidRoles("La lista no puede contener roles duplicados.");
         }
 
+        await using var transaction = await BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
         var user = await dbContext.Users
             .SingleOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
         if (user is null)
@@ -322,9 +338,6 @@ public sealed class UserService(
             return InvalidRoles("Uno o más roles no existen.");
         }
 
-        await using var transaction = await BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
         var currentAssignments = await dbContext.Set<ApplicationUserRole>()
             .Where(assignment => assignment.UserId == user.Id)
             .ToArrayAsync(cancellationToken);
@@ -338,6 +351,15 @@ public sealed class UserService(
         if (roles.Any(role => addedRoleIds.Contains(role.Id) && !role.IsActive))
         {
             return InvalidRoles("No se pueden asignar roles inactivos.");
+        }
+
+        var delegationError = await ValidateRoleDelegationAsync(
+            roles.Where(role => addedRoleIds.Contains(role.Id)).ToArray(),
+            requireAssignmentPermission: true,
+            cancellationToken);
+        if (delegationError is not null)
+        {
+            return delegationError;
         }
 
         var superadminRoleId = await GetSuperadminRoleIdAsync(cancellationToken);
@@ -549,6 +571,68 @@ public sealed class UserService(
         }
 
         return (roles, null);
+    }
+
+    private async Task<UserOperationResult?> ValidateRoleDelegationAsync(
+        IReadOnlyCollection<ApplicationRole> roles,
+        bool requireAssignmentPermission,
+        CancellationToken cancellationToken)
+    {
+        var actor = await currentUserService.GetCurrentAsync(cancellationToken);
+        if (actor is null)
+        {
+            return RoleAssignmentForbidden();
+        }
+
+        var actorRoles = await (
+                from assignment in dbContext.Set<ApplicationUserRole>().AsNoTracking()
+                join role in dbContext.Roles.AsNoTracking()
+                    on assignment.RoleId equals role.Id
+                where assignment.UserId == actor.Id && role.IsActive
+                select role)
+            .ToArrayAsync(cancellationToken);
+        var actorIsSuperadmin = actorRoles.Any(role =>
+            role.IsSystem
+            && role.Name == DatabaseSeeder.SuperadminRoleName);
+        if (roles.Any(role => role.IsSystem) && !actorIsSuperadmin)
+        {
+            return RoleAssignmentForbidden();
+        }
+
+        var actorPermissionCodes = await (
+                from assignment in dbContext.Set<ApplicationUserRole>().AsNoTracking()
+                join role in dbContext.Roles.AsNoTracking()
+                    on assignment.RoleId equals role.Id
+                join rolePermission in dbContext.RolePermissions.AsNoTracking()
+                    on role.Id equals rolePermission.RoleId
+                join permission in dbContext.Permissions.AsNoTracking()
+                    on rolePermission.PermissionId equals permission.Id
+                where assignment.UserId == actor.Id
+                    && role.IsActive
+                    && permission.IsActive
+                select permission.Code)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+        var actorPermissionSet = actorPermissionCodes.ToHashSet(StringComparer.Ordinal);
+        if (requireAssignmentPermission
+            && !actorPermissionSet.Contains(PermissionCodes.UsersAssignRoles))
+        {
+            return RoleAssignmentForbidden();
+        }
+
+        var delegatedRoleIds = roles.Select(role => role.Id).ToArray();
+        var delegatedPermissionCodes = await (
+                from assignment in dbContext.RolePermissions.AsNoTracking()
+                join permission in dbContext.Permissions.AsNoTracking()
+                    on assignment.PermissionId equals permission.Id
+                where delegatedRoleIds.Contains(assignment.RoleId)
+                    && permission.IsActive
+                select permission.Code)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+        return delegatedPermissionCodes.Any(code => !actorPermissionSet.Contains(code))
+            ? RoleAssignmentForbidden()
+            : null;
     }
 
     private async Task<bool> WouldRemoveLastActiveSuperadminAsync(
@@ -836,4 +920,9 @@ public sealed class UserService(
         UserOperationStatus.LastSuperadmin,
         ErrorCode: "last_superadmin_required",
         ErrorMessage: "La operación dejaría el sistema sin un Superadmin activo.");
+
+    private static UserOperationResult RoleAssignmentForbidden() => new(
+        UserOperationStatus.Conflict,
+        ErrorCode: "role_assignment_forbidden",
+        ErrorMessage: "No puedes asignar roles con privilegios que no posees.");
 }
