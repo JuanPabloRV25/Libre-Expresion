@@ -64,3 +64,8 @@ Con el túnel conjunto activo, el Portal está disponible en
 `http://127.0.0.1:5173/` y la bandeja Mailpit DEV en
 `http://127.0.0.1:8025/`. Producción no utilizará Mailpit: el proveedor
 corporativo de Libre Expresión está pendiente de definición.
+
+## Entrega operativa
+
+La operación, los accesos sin secretos, la validación de ambientes y el correo de
+requisitos para publicación están documentados en [`docs/operations/`](docs/operations/).

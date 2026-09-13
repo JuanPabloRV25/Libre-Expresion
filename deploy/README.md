@@ -127,6 +127,43 @@ Email__EnvironmentLabel=DESARROLLO
 Usar exactamente el modo, host y puerto documentados por el proveedor. El
 repositorio no contiene ni presupone credenciales reales.
 
+#### Perfil temporal Gmail para DEV
+
+Para Gmail, crear primero una **contraseña de aplicación** en la cuenta que se
+usará como remitente. No utilizar la contraseña normal de la cuenta. Reemplazar
+los marcadores únicamente dentro del archivo ignorado `.env.dev`:
+
+```dotenv
+Email__Enabled=true
+Email__Host=smtp.gmail.com
+Email__Port=587
+Email__UseTls=true
+Email__UseSsl=false
+Email__Username=<correo-gmail-real>
+Email__Password=<app-password-real>
+Email__FromName=Portal Libre Expresión
+Email__FromAddress=<mismo-correo-gmail-real>
+Email__PortalBaseUrl=http://127.0.0.1:5173
+Email__EnvironmentLabel=DESARROLLO
+```
+
+`Email__Username` es el nombre canónico de la variable (no crear otra variante
+como `UserName`). Para este perfil temporal, `Email__Username` y
+`Email__FromAddress` deben contener la misma cuenta Gmail. La contraseña de
+aplicación nunca debe copiarse a Git, documentación, tickets ni registros.
+
+Validar y aplicar el cambio sin reconstruir las imágenes:
+
+```bash
+sudo docker compose --env-file .env.dev config --quiet
+sudo docker compose --env-file .env.dev up -d --no-deps --force-recreate api
+sudo docker compose --env-file .env.dev ps
+```
+
+La recreación de `api` es necesaria porque las variables se leen al iniciar el
+contenedor. Después se debe ejecutar el flujo funcional de creación o
+restablecimiento con un destinatario controlado y comprobar la recepción.
+
 ### Volver a Mailpit
 
 Restaurar estas variables en `.env.dev`:
@@ -149,6 +186,32 @@ La UI de Mailpit está disponible en `http://127.0.0.1:8025/` desde el PC. Sus
 mensajes se almacenan en el volumen `portal-libre-expresion-dev-mailpit-data`.
 Las claves de Data Protection que validan los tokens se conservan en
 `portal-libre-expresion-dev-api-keys`.
+
+Después de restaurar el bloque anterior, validar y recrear solamente la API:
+
+```bash
+sudo docker compose --env-file .env.dev config --quiet
+sudo docker compose --env-file .env.dev up -d --no-deps --force-recreate api
+```
+
+Mailpit permanece disponible como servicio DEV; alternar entre Gmail y Mailpit
+es exclusivamente un cambio de configuración y no requiere modificar código.
+
+### Datos requeridos antes de configurar correo en PROD
+
+Antes de realizar el cambio de proveedor en PROD, el cliente debe entregar por
+un canal seguro:
+
+- proveedor SMTP, host, puerto y modo de seguridad (`STARTTLS` o SSL/TLS);
+- cuenta corporativa dedicada, usuario SMTP y secreto o contraseña de aplicación;
+- dirección y nombre del remitente autorizados;
+- URL pública HTTPS definitiva para `Email__PortalBaseUrl`;
+- confirmación de la autorización del dominio y de SPF, DKIM y DMARC;
+- responsable de la cuenta, política de rotación y destinatario de prueba.
+
+El secreto de PROD debe residir en el gestor de secretos del entorno, nunca en
+Git ni en un archivo distribuido. El cambio de proveedor continúa siendo de
+configuración; no requiere otra implementación de correo.
 
 ## Inspección de migraciones
 
