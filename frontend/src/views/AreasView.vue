@@ -125,8 +125,8 @@ async function toggle() {
           <p class="eyebrow">{{ form.id ? 'EDITAR ÁREA' : 'NUEVA ÁREA' }}</p>
           <h2>{{ form.id ? 'Editar área' : 'Crear área' }}</h2>
           <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
-          <label>Nombre <em>*</em><input v-model="form.name" required maxlength="120" /></label>
-          <label>Descripción<textarea v-model="form.description" maxlength="500" rows="3" /></label>
+          <label><span class="field-label">Nombre <em>*</em></span><input v-model="form.name" required maxlength="120" /></label>
+          <label><span class="field-label">Descripción</span><textarea v-model="form.description" maxlength="500" rows="3" /></label>
           <div class="dialog-actions">
             <button class="button secondary" type="button" @click="editorOpen = false">Cancelar</button>
             <button class="button primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar área' }}</button>

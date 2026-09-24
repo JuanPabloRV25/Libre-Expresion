@@ -55,7 +55,7 @@ const active = (to: string) => route.path === to || (to !== '/home' && route.pat
 
     <RouterLink v-if="auth.currentUser" class="sidebar-account" to="/profile" :title="props.collapsed ? auth.fullName : undefined" @click="emit('closeMobile')">
       <span class="avatar">{{ auth.currentUser.firstName[0] }}{{ auth.currentUser.lastName[0] }}</span>
-      <span><strong>{{ auth.fullName }}</strong><small>{{ auth.roleNames }}</small></span>
+      <span><strong>{{ auth.fullName }}</strong><small>{{ auth.roleSummary }}</small></span>
     </RouterLink>
   </aside>
 </template>

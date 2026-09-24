@@ -26,6 +26,7 @@ declare module 'vue-router' {
     permission?: string
     publicPasswordReset?: boolean
     title?: string
+    hidden?: boolean
   }
 }
 
@@ -49,7 +50,7 @@ export const router = createRouter({
     { path: '/roles/:id/edit', component: RoleFormView, meta: { requiresAuth: true, permission: 'roles.edit', title: 'Editar rol' } },
     { path: '/roles/:id/permissions', component: RolePermissionsView, meta: { requiresAuth: true, permission: 'roles.assign_permissions', title: 'Matriz de permisos' } },
     { path: '/permissions', component: PermissionsView, meta: { requiresAuth: true, permission: 'permissions.view', title: 'Permisos' } },
-    { path: '/audit', component: AuditView, meta: { requiresAuth: true, permission: 'audit.view', title: 'Auditoría' } },
+    { path: '/audit', component: AuditView, meta: { requiresAuth: true, permission: 'audit.view', title: 'Auditoría', hidden: true } },
     { path: '/profile', component: ProfileView, meta: { requiresAuth: true, title: 'Mi perfil' } },
     { path: '/profile/change-password', component: ChangePasswordView, meta: { requiresAuth: true, title: 'Cambiar contraseña' } },
     { path: '/unauthorized', component: UnauthorizedView, meta: { requiresAuth: true, title: 'Acceso no autorizado' } },
@@ -61,6 +62,7 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   await auth.initialize()
   document.title = `${to.meta.title ?? 'Portal'} · Portal Libre Expresión`
+  if (to.meta.hidden) return '/home'
   return resolveAuthNavigation(to.path, to.meta, {
     isAuthenticated: auth.isAuthenticated,
     mustChangePassword: auth.currentUser?.mustChangePassword ?? false,

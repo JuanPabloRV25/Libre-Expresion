@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using MailKit.Security;
+using MimeKit;
 using Portal.Infrastructure;
 using Portal.Application.Notifications;
 using Portal.Infrastructure.Notifications;
@@ -34,6 +35,24 @@ public sealed class SmtpEmailSenderTests
         Assert.Equal(message.To, mimeMessage.To.Mailboxes.Single().Address);
         Assert.Contains("HTML", mimeMessage.HtmlBody);
         Assert.Equal("Texto", mimeMessage.TextBody);
+    }
+
+    [Fact]
+    public void Mime_message_embeds_the_portal_logo_when_template_uses_its_content_id()
+    {
+        var message = new EmailMessage(
+            "usuario.prueba@libreexpresion.test",
+            "Asunto",
+            "<html><body><img src=\"cid:portal-logo\"></body></html>",
+            "Texto");
+
+        var mimeMessage = SmtpEmailSender.BuildMimeMessage(message, ValidEmailOptions());
+        var logo = mimeMessage.BodyParts
+            .OfType<MimePart>()
+            .Single(part => part.ContentId == "portal-logo");
+
+        Assert.Equal("image/png", logo.ContentType.MimeType);
+        Assert.Equal(ContentDisposition.Inline, logo.ContentDisposition?.Disposition);
     }
 
     [Fact]

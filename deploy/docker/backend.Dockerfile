@@ -5,6 +5,7 @@ COPY backend/Portal.Domain/Portal.Domain.csproj backend/Portal.Domain/
 COPY backend/Portal.Application/Portal.Application.csproj backend/Portal.Application/
 COPY backend/Portal.Infrastructure/Portal.Infrastructure.csproj backend/Portal.Infrastructure/
 COPY backend/Portal.Api/Portal.Api.csproj backend/Portal.Api/
+COPY frontend/public/logo-horizontal.png frontend/public/logo-horizontal.png
 RUN dotnet restore backend/Portal.Api/Portal.Api.csproj
 
 FROM restore AS build

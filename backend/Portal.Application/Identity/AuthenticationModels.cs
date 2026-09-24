@@ -12,6 +12,13 @@ public sealed record PortalLoginResult(
     PortalLoginStatus Status,
     bool MustChangePassword = false);
 
+public enum ActiveRoleSelectionStatus
+{
+    Succeeded,
+    InvalidSelection,
+    UserNotFound,
+}
+
 public enum PasswordChangeStatus
 {
     Succeeded,

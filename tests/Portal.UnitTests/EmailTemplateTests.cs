@@ -27,7 +27,11 @@ public sealed class EmailTemplateTests
         Assert.Contains("8809100001", message.HtmlBody);
         Assert.Contains("/reset-password?userId=", message.HtmlBody);
         Assert.Contains("token=encoded-token_123", message.HtmlBody);
-        Assert.Contains("ESTABLECER CONTRASEÑA", WebUtility.HtmlDecode(message.HtmlBody));
+        Assert.Contains("Crear mi contraseña", WebUtility.HtmlDecode(message.HtmlBody));
+        Assert.Contains("cid:portal-logo", message.HtmlBody);
+        Assert.Contains("font-family:Manrope", message.HtmlBody);
+        Assert.Contains("'DM Sans'", message.HtmlBody);
+        Assert.Contains("Vence en 2 horas", message.HtmlBody);
         Assert.Contains("8809100001", message.TextBody);
         Assert.Contains("token=encoded-token_123", message.TextBody);
         Assert.DoesNotContain("Contraseña temporal", message.HtmlBody + message.TextBody);
@@ -41,9 +45,12 @@ public sealed class EmailTemplateTests
 
         Assert.Equal(Recipient.Email, message.To);
         Assert.Contains("Restablecimiento", message.Subject);
-        Assert.Contains("restableció", message.HtmlBody);
-        Assert.Contains("temporal", message.HtmlBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("RESTABLECER CONTRASEÑA", WebUtility.HtmlDecode(message.HtmlBody));
+        Assert.Contains("restablecer", message.HtmlBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Crear nueva contraseña", WebUtility.HtmlDecode(message.HtmlBody));
+        Assert.Contains("Vence en 2 horas", message.HtmlBody);
+        Assert.Contains("Un solo uso", message.HtmlBody);
+        Assert.Contains("cid:portal-logo", message.HtmlBody);
+        Assert.DoesNotContain("Si el botón no funciona", message.HtmlBody);
         Assert.Contains("token=encoded-token_123", message.HtmlBody);
         Assert.Contains("token=encoded-token_123", message.TextBody);
         Assert.DoesNotContain("Contraseña temporal", message.HtmlBody + message.TextBody);
@@ -62,6 +69,9 @@ public sealed class EmailTemplateTests
         Assert.Equal(Recipient.Email, message.To);
         Assert.Contains("10/09/2026", message.HtmlBody);
         Assert.Contains("14:35 UTC", message.HtmlBody);
+        Assert.Contains("Cambio confirmado", message.HtmlBody);
+        Assert.Contains("Ingresar al Portal", message.HtmlBody);
+        Assert.Contains("/login", message.HtmlBody);
         Assert.Contains("no reconoces", message.TextBody, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(oldPassword, message.HtmlBody + message.TextBody);
         Assert.DoesNotContain(newPassword, message.HtmlBody + message.TextBody);

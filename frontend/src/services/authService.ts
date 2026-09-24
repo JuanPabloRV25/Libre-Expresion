@@ -24,6 +24,10 @@ export const authService = {
     }
   },
   me: () => getJson<AuthenticatedUser>('/auth/me'),
+  async selectActiveRoles(roleIds: string[]) {
+    await postJson<{ succeeded: boolean }>('/auth/active-roles', { roleIds })
+    return getJson<AuthenticatedUser>('/auth/me')
+  },
   async logout() {
     await postJson<{ succeeded: boolean }>('/auth/logout')
     clearAntiforgeryToken()

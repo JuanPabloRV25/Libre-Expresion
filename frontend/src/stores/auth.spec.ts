@@ -9,6 +9,7 @@ const service = vi.hoisted(() => ({
   logout: vi.fn(),
   changeRequiredPassword: vi.fn(),
   changePassword: vi.fn(),
+  selectActiveRoles: vi.fn(),
 }))
 
 vi.mock('../services/authService', () => ({ authService: service }))
@@ -21,6 +22,8 @@ const user = {
   email: 'grace@example.test',
   area: { id: '4bfabc9c-dabe-41b8-8af0-8e539fb9991b', name: 'Tecnología' },
   roles: ['Superadmin'],
+  availableRoles: [{ id: 'a1a183af-56fa-43be-bf12-399f66e78e48', name: 'Superadmin' }],
+  activeRoleIds: ['a1a183af-56fa-43be-bf12-399f66e78e48'],
   permissions: ['users.view', 'roles.view'],
   isActive: true,
   mustChangePassword: false,

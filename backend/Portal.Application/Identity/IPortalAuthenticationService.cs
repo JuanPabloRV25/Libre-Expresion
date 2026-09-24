@@ -6,6 +6,11 @@ public interface IPortalAuthenticationService
         string documentNumber,
         string password);
 
+    Task<ActiveRoleSelectionStatus> SelectActiveRolesAsync(
+        Guid userId,
+        IReadOnlyCollection<Guid> roleIds,
+        CancellationToken cancellationToken = default);
+
     Task<PasswordChangeResult> ChangeRequiredPasswordAsync(
         Guid userId,
         string newPassword,

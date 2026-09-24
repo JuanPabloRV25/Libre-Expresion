@@ -34,7 +34,7 @@ function describeError(error: unknown) {
     return 'Tu sesión terminó. Inicia sesión nuevamente para consultar la auditoría.'
   }
   if (error instanceof ApiError && error.status === 403) {
-    return 'No tienes el permiso audit.view para consultar la auditoría.'
+    return 'No tienes autorización para consultar la auditoría.'
   }
   return error instanceof ApiError
     ? error.message
@@ -98,6 +98,16 @@ function goToPage(target: number) {
   void load()
 }
 
+const auditActionNames: Record<string, string> = {
+  created: 'Creación', updated: 'Actualización', activated: 'Activación', deactivated: 'Desactivación',
+  login: 'Inicio de sesión', logout: 'Cierre de sesión', sent: 'Notificación enviada', failed: 'Operación fallida',
+  completed: 'Proceso completado', permissions: 'Permisos', password: 'Contraseña', reset: 'Restablecimiento',
+}
+const entityNames: Record<string, string> = { User: 'Usuario', Role: 'Rol', Area: 'Área', Permission: 'Permiso' }
+function readableAction(value: string) {
+  return value.split(/[._]/).map((part) => auditActionNames[part] ?? (part.charAt(0).toUpperCase() + part.slice(1))).join(' · ')
+}
+
 function hasDetail(event: AuditEvent) {
   return Boolean(
     event.correlationId
@@ -114,7 +124,7 @@ onMounted(load)
     <PageHeader
       eyebrow="Portal · Seguridad"
       title="Auditoría"
-      description="Consulta los eventos generados por las operaciones administrativas de Fase 1."
+      description="Consulta los eventos generados por las operaciones administrativas."
     />
 
     <section class="info-banner">
@@ -134,18 +144,17 @@ onMounted(load)
         <Search :size="18" />
         <input v-model="filters.search" aria-label="Buscar en auditoría" placeholder="Acción o identificador" />
       </label>
-      <label>Acción<input v-model="filters.action" placeholder="area.created" /></label>
-      <label>Entidad<input v-model="filters.entityType" placeholder="Area, Role o User" /></label>
-      <label>Resultado
-        <select v-model="filters.result">
+      <label><span class="field-label">Acción</span><input v-model="filters.action" placeholder="area.created" /></label>
+      <label><span class="field-label">Entidad</span><input v-model="filters.entityType" placeholder="Area, Role o User" /></label>
+      <label><span class="field-label">Resultado</span><select v-model="filters.result">
           <option value="">Todos</option>
-          <option value="SUCCESS">SUCCESS</option>
-          <option value="FAILED">FAILED</option>
-          <option value="DENIED">DENIED</option>
+          <option value="SUCCESS">Exitoso</option>
+          <option value="FAILED">Fallido</option>
+          <option value="DENIED">Denegado</option>
         </select>
       </label>
-      <label>Desde<input v-model="filters.dateFrom" type="date" /></label>
-      <label>Hasta<input v-model="filters.dateTo" type="date" /></label>
+      <label><span class="field-label">Desde</span><input v-model="filters.dateFrom" type="date" /></label>
+      <label><span class="field-label">Hasta</span><input v-model="filters.dateTo" type="date" /></label>
       <div class="audit-filter-actions">
         <button class="button secondary" type="button" @click="clearFilters">Limpiar</button>
         <button class="button primary" type="submit">Aplicar filtros</button>
@@ -178,8 +187,8 @@ onMounted(load)
             <tr v-for="event in events" v-else :key="event.id">
               <td class="audit-date">{{ formatAuditDate(event.occurredAt) }}</td>
               <td><strong>{{ event.actor?.name ?? 'Sistema / no disponible' }}</strong></td>
-              <td><code class="audit-code">{{ event.action }}</code></td>
-              <td>{{ event.entityType ?? '—' }}</td>
+              <td><span>{{ readableAction(event.action) }}</span></td>
+              <td>{{ event.entityType ? (entityNames[event.entityType] ?? event.entityType) : '—' }}</td>
               <td><span class="audit-entity-id">{{ event.entityId ?? '—' }}</span></td>
               <td>
                 <span class="audit-result" :class="auditResultPresentation(event.result).className">

@@ -41,6 +41,11 @@ export interface AuthenticatedUserArea {
   name: string
 }
 
+export interface AuthenticatedUserRole {
+  id: string
+  name: string
+}
+
 export interface AuthenticatedUser {
   id: string
   documentNumber: string
@@ -49,6 +54,8 @@ export interface AuthenticatedUser {
   email: string
   area: AuthenticatedUserArea | null
   roles: string[]
+  availableRoles: AuthenticatedUserRole[]
+  activeRoleIds: string[]
   permissions: string[]
   isActive: boolean
   mustChangePassword: boolean

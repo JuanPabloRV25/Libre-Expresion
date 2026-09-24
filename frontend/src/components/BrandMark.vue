@@ -4,11 +4,7 @@ defineProps<{ compact?: boolean; inverse?: boolean }>()
 
 <template>
   <div class="brand-mark" :class="{ compact, inverse }">
-    <img src="/logo-horizontal.png" alt="Libre Expresión" />
-    <div v-if="!compact" class="brand-copy">
-      <strong>Portal</strong>
-      <span>Libre Expresión</span>
-    </div>
+    <span class="brand-logo-frame"><img src="/logo-horizontal.png" alt="Libre Expresión" /></span>
   </div>
 </template>
 

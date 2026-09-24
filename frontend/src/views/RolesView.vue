@@ -40,6 +40,8 @@ watch(search, () => {
   searchTimer = setTimeout(load, 250)
 })
 
+function visiblePermissionCount(role: ApiRole) { return role.permissionCodes.filter((code) => !code.startsWith('audit.')).length }
+
 async function toggleStatus() {
   if (!toggleTarget.value) return
   errorMessage.value = ''
@@ -67,15 +69,15 @@ async function toggleStatus() {
         <span><strong>{{ roles.length }}</strong> roles</span>
       </div>
       <div class="table-scroll"><table>
-        <thead><tr><th>Rol</th><th>Usuarios</th><th>Permisos</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Rol</th><th class="number-column">Usuarios</th><th class="number-column">Permisos</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody>
           <tr v-if="loading"><td class="empty-row" colspan="5">Cargando roles…</td></tr>
           <tr v-else-if="roles.length === 0"><td class="empty-row" colspan="5">No se encontraron roles.</td></tr>
           <template v-else>
             <tr v-for="role in roles" :key="role.id">
               <td><strong>{{ role.name }}</strong><small class="cell-description">{{ role.description || 'Sin descripción' }}</small></td>
-              <td>{{ role.userCount }}</td>
-              <td>{{ role.permissionCodes.length }} asignados</td>
+              <td class="number-column">{{ role.userCount }}</td>
+              <td class="number-column">{{ visiblePermissionCount(role) }} asignados</td>
               <td><StatusBadge :active="role.isActive" /></td>
               <td><div class="row-actions">
                 <RouterLink :to="`/roles/${role.id}`">Ver</RouterLink>

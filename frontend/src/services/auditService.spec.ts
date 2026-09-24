@@ -85,7 +85,7 @@ describe('auditService real API contract', () => {
       passwordHash: 'never-render-this',
       secret: 'never-render-this-either',
     })).toEqual([{ key: 'name', label: 'Nombre', value: 'Área visible' }])
-    expect(auditResultPresentation('Success')).toEqual({ label: 'SUCCESS', className: 'is-success' })
+    expect(auditResultPresentation('Success')).toEqual({ label: 'Exitoso', className: 'is-success' })
     expect(auditResultPresentation('FAILED').className).toBe('is-failed')
     expect(auditResultPresentation('denied').className).toBe('is-denied')
   })

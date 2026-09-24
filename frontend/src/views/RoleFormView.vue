@@ -52,8 +52,8 @@ async function submit() {
       <div class="info-banner"><strong>Rol completamente parametrizable</strong><p>El nombre no activa reglas automáticas. Sus capacidades dependen únicamente de los permisos asociados.</p></div>
       <p v-if="form.isSystem" class="info-banner">Este rol de sistema está protegido: su nombre no puede modificarse.</p>
       <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
-      <label>Nombre del rol <em>*</em><input v-model="form.name" required maxlength="256" :disabled="form.isSystem" /></label>
-      <label>Descripción<textarea v-model="form.description" maxlength="500" rows="4" /></label>
+      <label><span class="field-label">Nombre del rol <em>*</em></span><input v-model="form.name" required maxlength="256" :disabled="form.isSystem" /></label>
+      <label><span class="field-label">Descripción</span><textarea v-model="form.description" maxlength="500" rows="4" /></label>
       <div class="form-actions">
         <RouterLink class="button secondary" to="/roles">Cancelar</RouterLink>
         <button class="button primary" type="submit" :disabled="saving">{{ saving ? 'Guardando…' : 'Guardar rol' }}</button>

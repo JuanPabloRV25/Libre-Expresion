@@ -25,9 +25,9 @@ export function safeAuditMetadataEntries(metadata: AuditEvent['metadata']) {
 
 export function auditResultPresentation(result: string) {
   const normalized = result.trim().toUpperCase()
-  if (normalized === 'SUCCESS') return { label: 'SUCCESS', className: 'is-success' }
-  if (normalized === 'FAILED') return { label: 'FAILED', className: 'is-failed' }
-  if (normalized === 'DENIED') return { label: 'DENIED', className: 'is-denied' }
+  if (normalized === 'SUCCESS') return { label: 'Exitoso', className: 'is-success' }
+  if (normalized === 'FAILED') return { label: 'Fallido', className: 'is-failed' }
+  if (normalized === 'DENIED') return { label: 'Denegado', className: 'is-denied' }
   return { label: result, className: 'is-neutral' }
 }
 

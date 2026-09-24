@@ -20,6 +20,10 @@ public static class AuthEndpoints
         group.MapGet("/me", GetCurrentUserAsync)
             .RequireAuthorization();
 
+        group.MapPost("/active-roles", SelectActiveRolesAsync)
+            .RequireAuthorization()
+            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+
         group.MapPost("/logout", LogoutAsync)
             .RequireAuthorization()
             .AddEndpointFilter<AntiforgeryEndpointFilter>();
@@ -103,9 +107,32 @@ public static class AuthEndpoints
                         currentUser.Area.Id,
                         currentUser.Area.Name),
                 currentUser.Roles,
+                currentUser.AvailableRoles.Select(role => new CurrentUserRoleResponse(role.Id, role.Name)).ToArray(),
+                currentUser.ActiveRoleIds,
                 currentUser.Permissions,
                 currentUser.IsActive,
                 currentUser.MustChangePassword));
+    }
+
+    private static async Task<IResult> SelectActiveRolesAsync(
+        ActiveRoleSelectionRequest request,
+        ICurrentUserService currentUserService,
+        IPortalAuthenticationService authenticationService,
+        CancellationToken cancellationToken)
+    {
+        var currentUser = await currentUserService.GetCurrentAsync(cancellationToken);
+        if (currentUser is null) return Results.Unauthorized();
+
+        var status = await authenticationService.SelectActiveRolesAsync(
+            currentUser.Id, request.RoleIds ?? [], cancellationToken);
+        return status switch
+        {
+            ActiveRoleSelectionStatus.Succeeded => Results.Ok(new OperationResponse(true)),
+            ActiveRoleSelectionStatus.InvalidSelection => Error(
+                StatusCodes.Status400BadRequest, "invalid_role_selection",
+                "Selecciona uno o varios roles activos asignados a tu cuenta."),
+            _ => Results.Unauthorized(),
+        };
     }
 
     private static async Task<IResult> LogoutAsync(
@@ -252,6 +279,8 @@ public static class AuthEndpoints
         bool MustChangePassword);
 
     public sealed record CurrentUserAreaResponse(Guid Id, string Name);
+    public sealed record CurrentUserRoleResponse(Guid Id, string Name);
+    public sealed record ActiveRoleSelectionRequest(IReadOnlyList<Guid>? RoleIds);
 
     public sealed record CurrentUserResponse(
         Guid Id,
@@ -261,6 +290,8 @@ public static class AuthEndpoints
         string Email,
         CurrentUserAreaResponse? Area,
         IReadOnlyList<string> Roles,
+        IReadOnlyList<CurrentUserRoleResponse> AvailableRoles,
+        IReadOnlyList<Guid> ActiveRoleIds,
         IReadOnlyList<string> Permissions,
         bool IsActive,
         bool MustChangePassword);

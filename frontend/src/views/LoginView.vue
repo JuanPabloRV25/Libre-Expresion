@@ -65,7 +65,7 @@ async function submit() {
           <p>Ingresa tus credenciales para continuar al portal.</p>
 
           <label>
-            Número de documento <em>*</em>
+            <span class="field-label">Número de documento <em>*</em></span>
             <span class="input-with-icon">
               <IdCard :size="19" />
               <input v-model="document" required inputmode="numeric" autocomplete="username" placeholder="Escribe tu documento" />
@@ -73,7 +73,7 @@ async function submit() {
           </label>
 
           <label>
-            Contraseña <em>*</em>
+            <span class="field-label">Contraseña <em>*</em></span>
             <span class="input-with-icon">
               <LockKeyhole :size="19" />
               <input v-model="password" required :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="Escribe tu contraseña" />

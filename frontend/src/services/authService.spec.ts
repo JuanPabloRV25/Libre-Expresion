@@ -10,6 +10,8 @@ const user = {
   email: 'ada@example.test',
   area: null,
   roles: ['Superadmin'],
+  availableRoles: [{ id: 'a1a183af-56fa-43be-bf12-399f66e78e48', name: 'Superadmin' }],
+  activeRoleIds: ['a1a183af-56fa-43be-bf12-399f66e78e48'],
   permissions: ['users.view'],
   isActive: true,
   mustChangePassword: false,

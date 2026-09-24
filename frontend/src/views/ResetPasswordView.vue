@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BrandMark from '../components/BrandMark.vue'
+import PasswordInput from '../components/PasswordInput.vue'
 import { ApiError } from '../api/httpClient'
 import { authService } from '../services/authService'
 import { passwordChangedNotificationMessage } from '../services/notificationMessages'
@@ -96,8 +97,8 @@ async function submit() {
         <p class="eyebrow">ACCESO PROTEGIDO</p>
         <h2>Nueva contraseña</h2>
         <p>Define la contraseña que utilizarás junto con tu número de documento.</p>
-        <label>Nueva contraseña <em>*</em><input v-model="newPassword" type="password" required autocomplete="new-password" /></label>
-        <label>Confirmar contraseña <em>*</em><input v-model="confirmation" type="password" required autocomplete="new-password" /></label>
+        <label><span class="field-label">Nueva contraseña <em>*</em></span><PasswordInput v-model="newPassword" placeholder="Escribe la nueva contraseña" /></label>
+        <label><span class="field-label">Confirmar contraseña <em>*</em></span><PasswordInput v-model="confirmation" placeholder="Repite la nueva contraseña" /></label>
         <ul class="field-hint">
           <li>Mínimo 8 caracteres.</li>
           <li>Al menos una mayúscula, una minúscula, un número y un carácter especial.</li>

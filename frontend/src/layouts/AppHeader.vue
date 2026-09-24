@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { ChevronDown, LogOut, KeyRound, UserRound } from '@lucide/vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import ActiveRoleSelector from '../components/ActiveRoleSelector.vue'
 
 const open = ref(false)
 const auth = useAuthStore()
@@ -21,10 +22,11 @@ async function logout() {
     <div class="account-menu">
       <button class="account-trigger" type="button" :aria-expanded="open" @click="open = !open">
         <span class="avatar">{{ auth.currentUser?.firstName[0] }}{{ auth.currentUser?.lastName[0] }}</span>
-        <span><strong>{{ auth.fullName }}</strong><small>{{ auth.roleNames }}</small></span>
+        <span><strong>{{ auth.fullName }}</strong><small>{{ auth.roleSummary }}</small></span>
         <ChevronDown :size="16" />
       </button>
       <div v-if="open" class="account-popover">
+        <ActiveRoleSelector />
         <RouterLink to="/profile" @click="open = false"><UserRound :size="17" /> Mi perfil</RouterLink>
         <RouterLink to="/profile/change-password" @click="open = false"><KeyRound :size="17" /> Cambiar contraseña</RouterLink>
         <button type="button" @click="logout"><LogOut :size="17" /> Cerrar sesión</button>

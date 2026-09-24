@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AppLayout from '../layouts/AppLayout.vue'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -11,6 +11,23 @@ const route = useRoute()
 const auth = useAuthStore()
 const role = ref<ApiRole>()
 const errorMessage = ref('')
+const permissionNames: Record<string, string> = {
+  'areas.view': 'Ver áreas', 'areas.create': 'Crear áreas', 'areas.edit': 'Editar áreas', 'areas.activate': 'Activar o inactivar áreas',
+  'users.view': 'Ver usuarios', 'users.create': 'Crear usuarios', 'users.edit': 'Editar usuarios', 'users.activate': 'Activar o inactivar usuarios',
+  'users.assign_roles': 'Asignar roles a usuarios', 'users.reset_password': 'Restablecer contraseñas',
+  'roles.view': 'Ver roles', 'roles.create': 'Crear roles', 'roles.edit': 'Editar roles', 'roles.activate': 'Activar o inactivar roles',
+  'roles.assign_permissions': 'Asignar permisos a roles', 'permissions.view': 'Ver permisos', 'audit.view': 'Ver auditoría',
+}
+const permissionName = (code: string) => permissionNames[code] ?? 'Acción autorizada'
+const moduleNames: Record<string, string> = {
+  areas: 'Áreas', users: 'Usuarios', roles: 'Roles', permissions: 'Permisos', audit: 'Auditoría',
+}
+const visiblePermissionCount = computed(() => (role.value?.permissionCodes ?? []).filter((code) => !code.startsWith('audit.')).length)
+const groupedPermissions = computed(() => (role.value?.permissionCodes ?? []).filter((code) => !code.startsWith('audit.')).reduce<Record<string, { code: string; name: string }[]>>((groups, code) => {
+  const module = moduleNames[code.split('.')[0] ?? ''] ?? 'Otras acciones'
+  ;(groups[module] ??= []).push({ code, name: permissionName(code) })
+  return groups
+}, {}))
 
 onMounted(async () => {
   try {
@@ -35,8 +52,8 @@ onMounted(async () => {
     </section>
     <div v-if="role" class="detail-grid">
       <section class="panel">
-        <p class="eyebrow">PERMISOS ASIGNADOS</p><h3>{{ role.permissionCodes.length }} permisos</h3>
-        <div class="stack-list"><div v-for="code in role.permissionCodes" :key="code"><strong>{{ code }}</strong></div><p v-if="!role.permissionCodes.length">Este rol todavía no tiene permisos.</p></div>
+        <p class="eyebrow">PERMISOS ASIGNADOS</p><h3>{{ visiblePermissionCount }} permisos</h3>
+        <div v-if="visiblePermissionCount" class="assigned-permission-groups"><details v-for="(items, module) in groupedPermissions" :key="module"><summary><span><strong>{{ module }}</strong><small>{{ items.length }} {{ items.length === 1 ? 'permiso' : 'permisos' }}</small></span><b aria-hidden="true">+</b></summary><div class="assigned-permission-items"><span v-for="permission in items" :key="permission.code">{{ permission.name }}</span></div></details></div><p v-else class="empty-permissions">Este rol todavía no tiene permisos.</p>
       </section>
       <section class="panel"><p class="eyebrow">USUARIOS ASIGNADOS</p><h3>{{ role.userCount }} usuarios</h3><p>Las asignaciones se administran desde el módulo de Usuarios.</p></section>
     </div>

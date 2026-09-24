@@ -14,7 +14,7 @@ const moduleNames: Record<string, string> = {
 
 onMounted(async () => {
   try {
-    permissions.value = await permissionsService.list()
+    permissions.value = (await permissionsService.list()).filter((permission) => permission.module !== 'audit')
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : 'No fue posible cargar el catálogo de permisos.'
   }
@@ -28,9 +28,9 @@ const grouped = computed(() => permissions.value.reduce<Record<string, ApiPermis
 
 <template>
   <AppLayout>
-    <PageHeader eyebrow="Portal · Permisos" title="Permisos" description="Catálogo de acciones disponibles para la Fase 1." />
+    <PageHeader eyebrow="Portal · Permisos" title="Permisos" description="Catálogo de acciones disponibles." />
     <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
     <section class="permission-summary"><KeyRound :size="28" /><strong>{{ permissions.length }}</strong><span>Permisos disponibles</span><p>Si un rol no tiene un permiso, el acceso se considera denegado. Ocultar opciones es una representación visual temporal.</p></section>
-    <div class="permission-catalog"><section v-for="(items, module) in grouped" :key="module" class="panel"><div class="catalog-head"><div><h3>{{ module }}</h3><p>Permisos administrativos oficiales de {{ module }}.</p></div><strong>{{ items.length }}</strong></div><div class="permission-lines"><div v-for="permission in items" :key="permission.code"><span><strong>{{ permission.displayName }}</strong><small>{{ permission.description || permission.displayName }}</small></span><code>{{ permission.code }}</code><em>Fase 1</em></div></div></section></div>
+    <div class="permission-catalog assigned-permission-groups"><details v-for="(items, module) in grouped" :key="module"><summary><span><strong>{{ module }}</strong><small>{{ items.length }} {{ items.length === 1 ? 'permiso disponible' : 'permisos disponibles' }}</small></span><b aria-hidden="true">+</b></summary><div class="assigned-permission-items permission-catalog-items"><span v-for="permission in items" :key="permission.code"><strong>{{ permission.displayName }}</strong><small>{{ permission.description || 'Acción disponible en este módulo.' }}</small></span></div></details></div>
   </AppLayout>
 </template>

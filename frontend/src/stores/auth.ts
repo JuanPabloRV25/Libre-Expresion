@@ -11,7 +11,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => currentUser.value !== null)
   const fullName = computed(() => currentUser.value ? `${currentUser.value.firstName} ${currentUser.value.lastName}` : '')
   const permissionCodes = computed(() => currentUser.value?.permissions ?? [])
-  const roleNames = computed(() => currentUser.value?.roles.join(', ') || 'Usuario interno')
+  const activeRoles = computed(() => currentUser.value?.availableRoles.filter((role) => currentUser.value?.activeRoleIds.includes(role.id)) ?? [])
+  const roleNames = computed(() => activeRoles.value.map((role) => role.name).join(', ') || 'Usuario interno')
+  const roleSummary = computed(() => activeRoles.value.length === 1 ? activeRoles.value[0]?.name : activeRoles.value.length + ' roles activos')
 
   async function initialize() {
     if (initialized.value) return
@@ -52,6 +54,10 @@ export const useAuthStore = defineStore('auth', () => {
     return !code || permissionCodes.value.includes(code)
   }
 
+  async function selectActiveRoles(roleIds: string[]) {
+    currentUser.value = await authService.selectActiveRoles(roleIds)
+  }
+
   async function logout() {
     try {
       if (currentUser.value) await authService.logout()
@@ -61,5 +67,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { currentUser, initialized, permissionCodes, roleNames, isAuthenticated, fullName, initialize, login, completeFirstLogin, changeOwnPassword, hasPermission, logout }
+  return { currentUser, initialized, permissionCodes, activeRoles, roleNames, roleSummary, isAuthenticated, fullName, initialize, login, completeFirstLogin, changeOwnPassword, selectActiveRoles, hasPermission, logout }
 })

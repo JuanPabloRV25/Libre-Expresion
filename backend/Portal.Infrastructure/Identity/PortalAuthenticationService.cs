@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Portal.Application.Identity;
 using Portal.Application.Notifications;
 using Portal.Domain.Auditing;
@@ -14,7 +16,8 @@ public sealed class PortalAuthenticationService(
     SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext dbContext,
     INotificationService notificationService,
-    TimeProvider timeProvider) : IPortalAuthenticationService
+    TimeProvider timeProvider,
+    IConfiguration configuration) : IPortalAuthenticationService
 {
     public async Task<PortalLoginResult> LoginAsync(
         string documentNumber,
@@ -31,6 +34,22 @@ public sealed class PortalAuthenticationService(
         if (user is null)
         {
             return new PortalLoginResult(PortalLoginStatus.InvalidCredentials);
+        }
+
+        if (UseDocumentAsTemporaryPassword()
+            && user.IsActive
+            && user.MustChangePassword
+            && !await userManager.HasPasswordAsync(user)
+            && string.Equals(user.UserName, password, StringComparison.Ordinal))
+        {
+            user.PasswordHash = userManager.PasswordHasher.HashPassword(user, password);
+            var migrated = await userManager.UpdateAsync(user);
+            if (!migrated.Succeeded)
+            {
+                return new PortalLoginResult(PortalLoginStatus.InvalidCredentials);
+            }
+
+            await userManager.ResetAccessFailedCountAsync(user);
         }
 
         var passwordCheck = await signInManager.CheckPasswordSignInAsync(
@@ -53,12 +72,67 @@ public sealed class PortalAuthenticationService(
             return new PortalLoginResult(PortalLoginStatus.Inactive);
         }
 
-        await signInManager.SignInAsync(user, isPersistent: false);
+        var activeRoleIds = await (
+                from userRole in dbContext.Set<ApplicationUserRole>().AsNoTracking()
+                join role in dbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                where userRole.UserId == user.Id && role.IsActive
+                select role.Id)
+            .ToArrayAsync();
+
+        await SignInWithActiveRolesAsync(user, activeRoleIds);
 
         return new PortalLoginResult(
             PortalLoginStatus.Succeeded,
             user.MustChangePassword);
     }
+
+    private bool UseDocumentAsTemporaryPassword() => string.Equals(
+        configuration["Authentication:UseDocumentAsTemporaryPassword"],
+        "true",
+        StringComparison.OrdinalIgnoreCase);
+
+    public async Task<ActiveRoleSelectionStatus> SelectActiveRolesAsync(
+        Guid userId,
+        IReadOnlyCollection<Guid> roleIds,
+        CancellationToken cancellationToken = default)
+    {
+        var selectedRoleIds = roleIds.Distinct().ToArray();
+        if (selectedRoleIds.Length == 0 || selectedRoleIds.Length != roleIds.Count)
+        {
+            return ActiveRoleSelectionStatus.InvalidSelection;
+        }
+
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null || !user.IsActive)
+        {
+            return ActiveRoleSelectionStatus.UserNotFound;
+        }
+
+        var assignedCount = await (
+                from userRole in dbContext.Set<ApplicationUserRole>().AsNoTracking()
+                join role in dbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                where userRole.UserId == userId
+                    && role.IsActive
+                    && selectedRoleIds.Contains(role.Id)
+                select role.Id)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        if (assignedCount != selectedRoleIds.Length)
+        {
+            return ActiveRoleSelectionStatus.InvalidSelection;
+        }
+
+        await SignInWithActiveRolesAsync(user, selectedRoleIds);
+        return ActiveRoleSelectionStatus.Succeeded;
+    }
+
+    private Task SignInWithActiveRolesAsync(
+        ApplicationUser user,
+        IEnumerable<Guid> roleIds) => signInManager.SignInWithClaimsAsync(
+            user,
+            isPersistent: false,
+            roleIds.Select(roleId => new Claim("portal:active_role", roleId.ToString())));
 
     public async Task<PasswordChangeResult> ChangeRequiredPasswordAsync(
         Guid userId,

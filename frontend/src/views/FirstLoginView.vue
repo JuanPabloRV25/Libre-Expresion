@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BrandMark from '../components/BrandMark.vue'
+import PasswordInput from '../components/PasswordInput.vue'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -13,6 +14,10 @@ const error = ref('')
 async function submit() {
   error.value = ''
   if (newPassword.value.length < 8) return void (error.value = 'La nueva contraseña debe tener al menos 8 caracteres.')
+  if (!/[A-Z]/.test(newPassword.value)) return void (error.value = 'La nueva contraseña debe incluir al menos una letra mayúscula.')
+  if (!/[a-z]/.test(newPassword.value)) return void (error.value = 'La nueva contraseña debe incluir al menos una letra minúscula.')
+  if (!/[0-9]/.test(newPassword.value)) return void (error.value = 'La nueva contraseña debe incluir al menos un número.')
+  if (!/[^A-Za-z0-9]/.test(newPassword.value)) return void (error.value = 'La nueva contraseña debe incluir al menos un carácter especial.')
   if (newPassword.value !== confirmation.value) return void (error.value = 'La confirmación no coincide con la nueva contraseña.')
   try {
     const notificationStatus = await auth.completeFirstLogin(newPassword.value, confirmation.value)
@@ -35,10 +40,10 @@ async function submit() {
       <form class="secure-form" @submit.prevent="submit">
         <p class="eyebrow">ACCESO PROTEGIDO</p>
         <h2>Establece una nueva contraseña</h2>
-        <p>No se mostrará el inicio ni el menú hasta completar este paso.</p>
-        <label>Nueva contraseña <em>*</em><input v-model="newPassword" type="password" required autocomplete="new-password" /></label>
-        <label>Confirmar nueva contraseña <em>*</em><input v-model="confirmation" type="password" required autocomplete="new-password" /></label>
-        <p class="field-hint">Usa una contraseña robusta y distinta de la contraseña temporal.</p>
+        <p>No se mostrará el inicio ni el menú hasta completar este paso.</p><div class="first-login-requirements"><strong>Tu nueva contraseña debe incluir:</strong><ul><li>8 caracteres como mínimo</li><li>Una letra mayúscula</li><li>Una letra minúscula</li><li>Un número</li><li>Un carácter especial, como @, #, $, % o *</li></ul></div>
+        <label><span class="field-label">Nueva contraseña <em>*</em></span><PasswordInput v-model="newPassword" placeholder="Escribe la nueva contraseña" /></label>
+        <label><span class="field-label">Confirmar nueva contraseña <em>*</em></span><PasswordInput v-model="confirmation" placeholder="Repite la nueva contraseña" /></label>
+        <p class="field-hint">Evita usar tu nombre, documento o información fácil de adivinar.</p>
         <p v-if="error" class="form-error" role="alert">{{ error }}</p>
         <button class="button primary full" type="submit">Cambiar contraseña</button>
       </form>

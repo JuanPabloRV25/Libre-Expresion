@@ -70,7 +70,15 @@ public sealed class CurrentUserService(
                 select new { role.Id, role.Name })
             .ToListAsync(cancellationToken);
 
-        var roleIds = activeRoles.Select(role => role.Id).ToArray();
+        var availableRoleIds = activeRoles.Select(role => role.Id).ToArray();
+        var claimedRoleIds = principal.FindAll("portal:active_role")
+            .Select(claim => Guid.TryParse(claim.Value, out var roleId) ? roleId : Guid.Empty)
+            .Where(roleId => roleId != Guid.Empty)
+            .Distinct()
+            .ToArray();
+        var roleIds = (claimedRoleIds.Length == 0 ? availableRoleIds : claimedRoleIds)
+            .Where(availableRoleIds.Contains)
+            .ToArray();
         IReadOnlyList<string> permissions = [];
 
         if (!user.MustChangePassword && roleIds.Length > 0)
@@ -97,6 +105,8 @@ public sealed class CurrentUserService(
                 .Select(role => role.Name ?? string.Empty)
                 .Where(name => name.Length > 0)
                 .ToArray(),
+            activeRoles.Select(role => new CurrentUserRole(role.Id, role.Name ?? string.Empty)).ToArray(),
+            roleIds,
             permissions,
             user.IsActive,
             user.MustChangePassword);

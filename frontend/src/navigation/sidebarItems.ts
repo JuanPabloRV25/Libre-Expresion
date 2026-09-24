@@ -5,6 +5,7 @@ export interface SidebarItem {
   to: string
   icon: SidebarIconName
   permission?: string
+  hidden?: boolean
 }
 
 export const sidebarItems: readonly SidebarItem[] = [
@@ -13,9 +14,9 @@ export const sidebarItems: readonly SidebarItem[] = [
   { label: 'Áreas', to: '/areas', icon: 'areas', permission: 'areas.view' },
   { label: 'Roles', to: '/roles', icon: 'roles', permission: 'roles.view' },
   { label: 'Permisos', to: '/permissions', icon: 'permissions', permission: 'permissions.view' },
-  { label: 'Auditoría', to: '/audit', icon: 'audit', permission: 'audit.view' },
+  { label: 'Auditoría', to: '/audit', icon: 'audit', permission: 'audit.view', hidden: true },
 ]
 
 export function visibleSidebarItems(hasPermission: (permission?: string) => boolean) {
-  return sidebarItems.filter((item) => hasPermission(item.permission))
+  return sidebarItems.filter((item) => !item.hidden && hasPermission(item.permission))
 }

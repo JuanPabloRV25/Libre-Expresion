@@ -51,11 +51,23 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSend
             settings.FromAddress));
         mimeMessage.To.Add(MailboxAddress.Parse(message.To));
         mimeMessage.Subject = message.Subject;
-        mimeMessage.Body = new BodyBuilder
+        var bodyBuilder = new BodyBuilder
         {
             HtmlBody = message.HtmlBody,
             TextBody = message.TextBody,
-        }.ToMessageBody();
+        };
+
+        if (message.HtmlBody.Contains("cid:portal-logo", StringComparison.OrdinalIgnoreCase))
+        {
+            const string resourceName = "Portal.EmailLogo";
+            using var logoStream = typeof(SmtpEmailSender).Assembly.GetManifestResourceStream(resourceName)
+                ?? throw new InvalidOperationException($"Embedded email asset '{resourceName}' was not found.");
+            var logo = bodyBuilder.LinkedResources.Add("logo-horizontal.png", logoStream);
+            logo.ContentId = "portal-logo";
+            logo.ContentDisposition = new ContentDisposition(ContentDisposition.Inline);
+        }
+
+        mimeMessage.Body = bodyBuilder.ToMessageBody();
         return mimeMessage;
     }
 

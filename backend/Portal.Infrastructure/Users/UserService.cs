@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using Portal.Application.Identity;
 using Portal.Application.Notifications;
 using Portal.Application.Users;
@@ -20,7 +21,8 @@ public sealed class UserService(
     UserManager<ApplicationUser> userManager,
     ICurrentUserService currentUserService,
     INotificationService notificationService,
-    TimeProvider timeProvider) : IUserService
+    TimeProvider timeProvider,
+    IConfiguration configuration) : IUserService
 {
     public async Task<IReadOnlyList<UserDto>> ListAsync(
         string? search,
@@ -149,6 +151,16 @@ public sealed class UserService(
             CreatedAt = now,
             UpdatedAt = now,
         };
+
+        // La credencial predecible se habilita exclusivamente mediante
+        // configuración de DEV. Se asigna con el hasher de Identity sin relajar
+        // la política general de contraseñas del Portal.
+        if (UseDocumentAsTemporaryPassword())
+        {
+            user.PasswordHash = userManager.PasswordHasher.HashPassword(
+                user,
+                validation.DocumentNumber!);
+        }
 
         var identityResult = await userManager.CreateAsync(user);
         if (!identityResult.Succeeded)
@@ -450,6 +462,19 @@ public sealed class UserService(
         if (!identityResult.Succeeded)
         {
             return MapIdentityFailure(identityResult);
+        }
+
+        if (UseDocumentAsTemporaryPassword())
+        {
+            user.PasswordHash = userManager.PasswordHasher.HashPassword(
+                user,
+                user.UserName
+                    ?? throw new InvalidOperationException("The user does not have a document number."));
+            identityResult = await userManager.UpdateAsync(user);
+            if (!identityResult.Succeeded)
+            {
+                return MapIdentityFailure(identityResult);
+            }
         }
 
         user.MustChangePassword = true;
@@ -772,6 +797,11 @@ public sealed class UserService(
         CancellationToken cancellationToken) => transaction is null
             ? Task.CompletedTask
             : transaction.CommitAsync(cancellationToken);
+
+    private bool UseDocumentAsTemporaryPassword() => string.Equals(
+        configuration["Authentication:UseDocumentAsTemporaryPassword"],
+        "true",
+        StringComparison.OrdinalIgnoreCase);
 
     private static (
         string? DocumentNumber,
