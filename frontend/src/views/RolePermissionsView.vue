@@ -15,7 +15,7 @@ const selected = ref<string[]>([])
 const saving = ref(false)
 const errorMessage = ref('')
 const moduleNames: Record<string, string> = {
-  areas: 'Áreas', users: 'Usuarios', roles: 'Roles', permissions: 'Permisos', audit: 'Auditoría',
+  areas: 'Áreas', users: 'Usuarios', roles: 'Roles', permissions: 'Permisos', audit: 'Auditoría', 'commercial.production_orders': 'Comercial · Órdenes de producción',
 }
 
 onMounted(async () => {
@@ -30,7 +30,7 @@ onMounted(async () => {
   }
 })
 
-const visiblePermissions = computed(() => permissions.value.filter((permission) => permission.module !== 'audit'))
+const visiblePermissions = computed(() => permissions.value)
 const grouped = computed(() => visiblePermissions.value.reduce<Record<string, ApiPermission[]>>((result, permission) => {
   ;(result[moduleNames[permission.module] ?? permission.module] ??= []).push(permission)
   return result

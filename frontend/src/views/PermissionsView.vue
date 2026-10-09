@@ -9,12 +9,12 @@ import { permissionsService, type ApiPermission } from '../services/permissionsS
 const permissions = ref<ApiPermission[]>([])
 const errorMessage = ref('')
 const moduleNames: Record<string, string> = {
-  areas: 'Áreas', users: 'Usuarios', roles: 'Roles', permissions: 'Permisos', audit: 'Auditoría',
+  areas: 'Áreas', users: 'Usuarios', roles: 'Roles', permissions: 'Permisos', audit: 'Auditoría', 'commercial.production_orders': 'Comercial · Órdenes de producción',
 }
 
 onMounted(async () => {
   try {
-    permissions.value = (await permissionsService.list()).filter((permission) => permission.module !== 'audit')
+    permissions.value = (await permissionsService.list())
   } catch (error) {
     errorMessage.value = error instanceof ApiError ? error.message : 'No fue posible cargar el catálogo de permisos.'
   }

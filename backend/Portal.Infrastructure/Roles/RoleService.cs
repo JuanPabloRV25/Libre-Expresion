@@ -6,6 +6,7 @@ using Portal.Application.Identity;
 using Portal.Application.Roles;
 using Portal.Domain.Auditing;
 using Portal.Domain.Permissions;
+using Portal.Domain.Commercial.ProductionOrders;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 
@@ -233,10 +234,10 @@ public sealed class RoleService(
 
         if (role.IsSystem
             && (!requestedCodes.ToHashSet(StringComparer.Ordinal)
-                .SetEquals(PermissionCodes.All)))
+                .SetEquals(PermissionCodes.All.Concat(CommercialPermissionCodes.All))))
         {
             return Protected(
-                "El rol Superadmin debe conservar los 17 permisos oficiales.");
+                "El rol Superadmin debe conservar todos los permisos oficiales.");
         }
 
         var permissions = await dbContext.Permissions

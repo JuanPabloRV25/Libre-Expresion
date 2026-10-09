@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Application.Identity;
+using Portal.Application.Commercial.ProductionOrders;
 using Portal.Application.Auditing;
 using Portal.Application.Areas;
 using Portal.Application.Permissions;
@@ -12,6 +13,7 @@ using Portal.Application.Notifications;
 using Portal.Application.Roles;
 using Portal.Application.Users;
 using Portal.Infrastructure.Areas;
+using Portal.Infrastructure.Commercial.ProductionOrders;
 using Portal.Infrastructure.Auditing;
 using Portal.Infrastructure.Permissions;
 using Portal.Infrastructure.Roles;
@@ -64,7 +66,9 @@ public static class DependencyInjection
             })
             .AddCookie(IdentityConstants.ApplicationScheme, options =>
             {
-                options.Cookie.Name = "PortalLibreExpresion.Auth";
+                options.Cookie.Name = requireSecureCookies
+                    ? "PortalLibreExpresion.Prod.Auth"
+                    : "PortalLibreExpresion.Dev.Auth";
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
                 options.Cookie.Path = "/";
@@ -82,6 +86,10 @@ public static class DependencyInjection
                 options => !options.Enabled || IsValidEmailConfiguration(options),
                 "Email configuration is incomplete or invalid.")
             .ValidateOnStart();
+        services.AddOptions<ProductionOrderDocumentStorageOptions>()
+            .Bind(configuration.GetSection(ProductionOrderDocumentStorageOptions.SectionName))
+            .Validate(options => !string.IsNullOrWhiteSpace(options.RootPath), "Commercial document root path is required.")
+            .ValidateOnStart();
         services.AddScoped<DatabaseSeeder>();
         services.AddHttpContextAccessor();
         services.AddScoped<PortalCookieAuthenticationEvents>();
@@ -89,6 +97,11 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IAreaService, AreaService>();
+        services.AddScoped<IProductionOrderService, ProductionOrderService>();
+        services.AddScoped<Portal.Application.Commercial.Reports.ICommercialReportService, Portal.Infrastructure.Commercial.Reports.CommercialReportService>();
+        services.AddScoped<IQuotationImporter, EmlazeQuotationImporter>();
+        services.AddSingleton<IProductionOrderDocumentStorage, FileSystemProductionOrderDocumentStorage>();
+        services.AddHostedService<CommercialNotificationOutboxWorker>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IUserService, UserService>();

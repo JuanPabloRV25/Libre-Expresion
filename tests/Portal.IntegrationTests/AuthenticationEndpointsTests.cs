@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Domain.Permissions;
+using Portal.Domain.Commercial.ProductionOrders;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -17,7 +18,7 @@ public sealed class AuthenticationEndpointsTests
     private const string DefinitivePassword = "Definitive!42";
 
     [Fact]
-    public async Task Login_RebuildsProfileWithThe17EffectivePermissions()
+    public async Task Login_RebuildsProfileWithAllEffectivePermissions()
     {
         await using var factory = new PortalApiFactory();
         var credentials = await SeedSuperadminAsync(factory, mustChangePassword: false);
@@ -34,7 +35,7 @@ public sealed class AuthenticationEndpointsTests
 
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var authCookie = login.Headers.GetValues("Set-Cookie")
-            .Single(value => value.StartsWith("PortalLibreExpresion.Auth=", StringComparison.Ordinal));
+            .Single(value => value.StartsWith("PortalLibreExpresion.Dev.Auth=", StringComparison.Ordinal));
         Assert.Contains("httponly", authCookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=strict", authCookie, StringComparison.OrdinalIgnoreCase);
 
@@ -45,8 +46,8 @@ public sealed class AuthenticationEndpointsTests
             .ToArray();
 
         Assert.Equal(credentials.Document, profile.GetProperty("documentNumber").GetString());
-        Assert.Equal(PermissionCodes.All.Order(), permissions.Order());
-        Assert.Equal(17, permissions.Length);
+        Assert.Equal(PermissionCodes.All.Concat(CommercialPermissionCodes.All).Order(), permissions.Order());
+        Assert.Equal(PermissionCodes.All.Count + CommercialPermissionCodes.All.Count, permissions.Length);
         Assert.Contains("Superadmin", profile.GetProperty("roles").EnumerateArray().Select(item => item.GetString()));
     }
 

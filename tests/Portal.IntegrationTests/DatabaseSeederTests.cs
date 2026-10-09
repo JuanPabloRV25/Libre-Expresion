@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Domain.Permissions;
+using Portal.Domain.Commercial.ProductionOrders;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -62,7 +63,7 @@ public sealed class DatabaseSeederTests
                 .GetRequiredService<IPasswordHasher<ApplicationUser>>();
 
             var user = await context.Users.SingleAsync();
-            var role = await context.Roles.SingleAsync();
+            var role = await context.Roles.SingleAsync(candidate => candidate.Name == DatabaseSeeder.SuperadminRoleName);
 
             Assert.Equal(DatabaseSeeder.SuperadminRoleName, role.Name);
             Assert.True(role.IsSystem);
@@ -76,11 +77,11 @@ public sealed class DatabaseSeederTests
                 PasswordVerificationResult.Failed,
                 passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, document));
 
-            Assert.Equal(17, await context.Permissions.CountAsync());
+            Assert.Equal(PermissionCodes.All.Count + CommercialPermissionCodes.All.Count, await context.Permissions.CountAsync());
             var rolePermissions = await context.RolePermissions.ToListAsync();
             var userRoles = await context.Set<ApplicationUserRole>().ToListAsync();
 
-            Assert.Equal(17, rolePermissions.Count);
+            Assert.Equal(44, rolePermissions.Count); // Reports adds three permissions to Superadmin and Auxiliar Comercial.
             Assert.Single(userRoles);
             Assert.All(
                 rolePermissions,
@@ -126,14 +127,44 @@ public sealed class DatabaseSeederTests
 
             Assert.False(user.MustChangePassword);
             Assert.Equal(passwordHashAfterUserUpdate, user.PasswordHash);
-            Assert.Equal(17, await context.Permissions.CountAsync());
-            Assert.Single(await context.Roles.ToListAsync());
+            Assert.Equal(PermissionCodes.All.Count + CommercialPermissionCodes.All.Count, await context.Permissions.CountAsync());
+            Assert.Equal(3, await context.Roles.CountAsync());
             Assert.Single(await context.Users.ToListAsync());
             Assert.Single(await context.Set<ApplicationUserRole>().ToListAsync());
-            Assert.Equal(17, await context.RolePermissions.CountAsync());
+            Assert.Equal(44, await context.RolePermissions.CountAsync());
             Assert.Empty(await context.Areas.ToListAsync());
             Assert.Empty(await context.AuditEvents.ToListAsync());
         }
+    }
+
+    [Fact]
+    public async Task Seeder_uses_a_supplied_initial_password_instead_of_the_document()
+    {
+        await using var serviceProvider = CreateServiceProvider();
+        var document = $"admin-{Guid.NewGuid():N}";
+        const string initialPassword = "Seguro-para-inicio-2026!";
+        var settings = new DatabaseSeedSettings(
+            document,
+            "Inicial",
+            "Administrador",
+            $"{Guid.NewGuid():N}@example.invalid",
+            initialPassword);
+
+        await SeedAsync(serviceProvider, settings);
+
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var passwordHasher = scope.ServiceProvider
+            .GetRequiredService<IPasswordHasher<ApplicationUser>>();
+        var user = await context.Users.SingleAsync();
+
+        Assert.True(user.MustChangePassword);
+        Assert.NotEqual(
+            PasswordVerificationResult.Failed,
+            passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, initialPassword));
+        Assert.Equal(
+            PasswordVerificationResult.Failed,
+            passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, document));
     }
 
     private static async Task SeedAsync(

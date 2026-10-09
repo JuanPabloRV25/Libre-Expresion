@@ -1,0 +1,97 @@
+.report-record-editor { min-width:0; color:#243348; }
+.report-record-editor * { box-sizing:border-box; }
+.record-review-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.record-review-heading > div { min-width:0; }
+.record-review-heading h2 { margin:5px 0 9px; font-size:22px; line-height:1.35; }
+.record-review-label { margin:0; color:#667085; font-size:12px; line-height:1.5; }
+.record-review-context { margin:0; font-size:15px; line-height:1.55; overflow-wrap:anywhere; }
+.record-review-context span { display:block; color:#667085; font-size:13px; }
+.record-review-close { flex-shrink:0; }
+.record-review-status { display:flex; align-items:flex-start; gap:11px; padding:14px 16px; margin:20px 0 0; border:1px solid #f0dfbf; border-radius:10px; color:#795821; background:#fffaf0; }
+.record-review-status > svg { flex-shrink:0; margin-top:1px; }
+.record-review-status > div { flex:1; min-width:0; }
+.record-review-status strong { display:block; font-size:14px; line-height:1.5; font-weight:600; overflow-wrap:anywhere; }
+.record-review-status span { display:block; margin-top:4px; font-size:12px; line-height:1.5; color:#667085; }
+.record-review-status.complete { border-color:#cfe4d7; color:#215b40; background:#f3faf5; }
+.record-review-status.structural { border-color:#f0d2be; color:#9a4319; background:#fff7f1; }
+.record-review-pending { margin-top:8px; font-size:13px; }
+.record-review-pending ul { padding-left:20px; margin:8px 0 0; line-height:1.6; }
+.record-review-tabs { display:flex; gap:24px; margin:22px 0; border-bottom:1px solid #e4e7ec; }
+.record-review-tabs button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:10px 2px; border:0; border-bottom:3px solid transparent; margin-bottom:-1px; background:none; color:#667085; font:inherit; font-size:14px; font-weight:500; cursor:pointer; }
+.record-review-tabs button[aria-selected=true] { color:#a63b0b; border-bottom-color:#e85b12; }
+.record-review-tabs svg { flex-shrink:0; }
+.report-record-editor h3 { margin:0 0 12px; font-size:16px; font-weight:600; line-height:1.5; }
+.record-detail-list { margin-bottom:22px; }
+.record-detail-options { display:grid; gap:8px; }
+.record-detail-options > button { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:11px 13px; border:1px solid #e1e7ee; border-radius:9px; color:#243348; background:#fff; cursor:pointer; font:inherit; text-align:left; min-height:66px; }
+.record-detail-options > button[aria-pressed=true] { border-color:#deaa8b; background:#fff8f3; }
+.record-detail-options > button > div { min-width:0; flex:1; }
+.record-detail-snippet { display:-webkit-box; overflow:hidden; -webkit-line-clamp:2; -webkit-box-orient:vertical; margin-top:3px; font-size:13px; line-height:1.45; overflow-wrap:anywhere; }
+.record-detail-state { display:inline-flex; align-items:center; padding:5px 8px; flex-shrink:0; border-radius:6px; color:#267653; background:#eaf5ee; font-size:11px; line-height:1.5; }
+.record-detail-state.pending { color:#795821; background:#fff3db; }
+.record-detail-state.excluded { color:#667085; background:#eef1f5; }
+.record-detail-review { padding:20px; border:1px solid #e4e7ec; border-radius:12px; background:#fff; }
+.record-detail-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.record-detail-heading h3 { margin:0; }
+.record-detail-description { margin:0 0 18px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.65; }
+.record-op-match { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px; border:1px solid #e4e7ec; border-radius:10px; background:#f8fafc; }
+.record-op-match > div { flex:1; min-width:0; }
+.record-op-match strong { display:block; margin-top:4px; font-size:16px; font-weight:600; overflow-wrap:anywhere; }
+.record-op-match p { margin:3px 0; font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.record-op-match small { color:#667085; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.record-op-picker { display:grid; gap:14px; margin:16px 0; padding:16px; border:1px solid #e4e7ec; border-radius:10px; background:#fcfdfe; }
+.reports-editor .record-op-search { display:flex; flex-direction:row; align-items:center; gap:10px; width:100%; min-width:0; padding:8px 11px; border:1px solid #cfd8e2; border-radius:8px; background:white; }
+.record-op-search svg { flex-shrink:0; color:#667085; }
+.reports-editor .record-op-search input { border:0; padding:2px; min-width:0; min-height:28px; outline:none; }
+.record-op-search:focus-within { outline:2px solid #c2410c; outline-offset:2px; }
+.record-op-search .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.record-review-help { margin:0; font-size:12px; line-height:1.55; color:#667085; }
+.record-missing-product { margin:16px 0; }
+.record-missing-product small, .record-primary-fields small, .record-excluded-notice small { font-size:12px; font-weight:400; color:#667085; line-height:1.5; }
+.record-confirm-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.record-review-text-button { padding:10px 0; border:0; background:none; font:inherit; font-size:13px; color:#a63b0b; text-decoration:underline; cursor:pointer; }
+.record-origin, .record-other-corrections { margin-top:18px; padding-top:14px; border-top:1px solid #edf0f4; }
+.report-record-editor summary { min-height:36px; color:#526074; font-size:13px; line-height:1.5; }
+.record-origin dl { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px 20px; margin:14px 0 0; }
+.record-origin dt { color:#667085; font-size:11px; }
+.record-origin dd { margin:5px 0 0; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.record-other-corrections > label { margin:12px 0; }
+.reports-editor .record-check { display:flex; flex-direction:row; align-items:flex-start; gap:10px; font-size:13px; line-height:1.5; font-weight:400; }
+.record-check input { width:18px; height:18px; flex-shrink:0; margin-top:1px; }
+.record-other-corrections > button { margin-top:15px; }
+.record-excluded-notice { display:grid; gap:14px; padding:16px; border:1px solid #e4e7ec; border-radius:10px; background:#f8fafc; font-size:13px; }
+.record-excluded-notice .button { justify-self:start; }
+.record-regroup-notice { display:flex; align-items:flex-start; gap:10px; margin-bottom:18px; padding:15px; border:1px solid #f0d2be; border-radius:10px; background:#fff7f1; color:#9a4319; font-size:13px; line-height:1.55; }
+.record-regroup-notice svg { flex-shrink:0; }
+.record-regroup-notice strong { font-weight:600; }
+.record-regroup-notice p { margin:5px 0 0; }
+.record-regroup-notice .button { margin-top:12px; }
+.record-excel-form { margin-top:24px; padding:20px; border:1px solid #e4e7ec; border-radius:12px; background:#fcfdfe; }
+.record-excel-form-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+.record-excel-form-heading h3 { margin:0; }
+.record-excel-form-heading span { font-size:12px; color:#667085; overflow-wrap:anywhere; }
+.record-primary-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; }
+.record-secondary-fields { margin-top:20px; padding-top:14px; border-top:1px solid #e4e7ec; }
+.record-secondary-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin:16px 0; }
+.record-correction-note { grid-column:1/-1; }
+.record-review-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-top:24px; padding-top:18px; border-top:1px solid #e4e7ec; }
+.record-review-footer p { margin:0; flex:1 1 240px; color:#667085; font-size:12px; line-height:1.55; }
+.report-record-editor button:focus-visible, .report-record-editor summary:focus-visible { outline:2px solid #c2410c; outline-offset:3px; }
+.report-record-editor button:disabled { cursor:default; }
+.report-record-editor input, .report-record-editor select { min-width:0; min-height:44px; }
+.report-record-editor .reports-page-select { flex-direction:row; align-items:center; gap:8px; font-weight:400; }
+.report-record-editor .reports-page-select select { width:64px; min-height:36px; height:36px; padding:0 8px; }
+@media(max-width:760px) {
+ .report-record-editor .reports-page-select select { min-height:44px; height:44px; }
+ .record-review-heading { gap:10px; }.record-review-heading h2 { font-size:20px; }.record-review-close { min-width:44px; }
+ .record-review-status { flex-wrap:wrap; padding:13px; }.record-review-status > div { flex-basis:calc(100% - 32px); }.record-review-status .button { margin-left:30px; }
+ .record-review-tabs { gap:16px; }.record-review-tabs button { font-size:13px; }
+ .record-detail-review { padding:15px; }.record-op-match { align-items:flex-start; flex-direction:column; padding:13px; }.record-op-match > div { width:100%; }
+ .record-op-picker { padding:12px; }.record-detail-heading { align-items:flex-start; }.record-origin dl, .record-primary-fields, .record-secondary-grid { grid-template-columns:minmax(0,1fr); }
+ .record-excel-form { padding:15px; }.record-confirm-actions .button { width:100%; justify-content:center; }.record-review-footer .button { width:100%; justify-content:center; min-height:44px; }
+ .record-detail-options > button { gap:9px; padding:11px; }.record-detail-state { font-size:10px; }.record-detail-snippet { -webkit-line-clamp:2; }
+}
+@media(max-width:390px) {
+ .record-review-heading { flex-wrap:wrap; }.record-review-close { margin-left:auto; }.record-review-tabs { gap:10px; }.record-review-tabs button { flex:1; gap:6px; }
+ .record-detail-options > button { align-items:flex-start; flex-direction:column; }.record-detail-heading { flex-wrap:wrap; }
+}

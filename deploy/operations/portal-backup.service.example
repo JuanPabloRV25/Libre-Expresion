@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup PostgreSQL de Portal Libre Expresión PROD
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=REEMPLAZAR_OPERADOR_AUTORIZADO
+WorkingDirectory=/RUTA/AL/REPOSITORIO
+ExecStart=/bin/bash /RUTA/AL/REPOSITORIO/deploy/scripts/backup-postgres.sh /RUTA/EXTERNA/BACKUPS

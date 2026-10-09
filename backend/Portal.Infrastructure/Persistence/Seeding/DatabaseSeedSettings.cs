@@ -4,4 +4,5 @@ public sealed record DatabaseSeedSettings(
     string? SuperadminDocument,
     string? SuperadminFirstName,
     string? SuperadminLastName,
-    string? SuperadminEmail);
+    string? SuperadminEmail,
+    string? InitialPassword = null);

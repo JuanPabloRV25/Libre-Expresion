@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup diario de Portal Libre Expresión PROD
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+Unit=portal-backup.service
+
+[Install]
+WantedBy=timers.target

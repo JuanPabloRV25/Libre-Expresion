@@ -33,6 +33,10 @@ public sealed class AuditService(ApplicationDbContext dbContext) : IAuditService
             ["RemovedRoleIds"] = "removedRoleIds",
             ["AddedCodes"] = "addedCodes",
             ["RemovedCodes"] = "removedCodes",
+            ["OrderCode"] = "orderCode",
+            ["Status"] = "status",
+            ["PreviousStatus"] = "previousStatus",
+            ["SourceOrderId"] = "sourceOrderId",
         };
 
     public async Task<AuditPageDto> ListAsync(

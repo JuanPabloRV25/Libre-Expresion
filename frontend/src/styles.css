@@ -234,3 +234,22 @@ label small { font-weight: 400; line-height: 1.4; }
 .password-input input:focus { box-shadow: none; }
 .password-input button { width: 44px; min-height: 46px; flex: 0 0 auto; display: grid; place-items: center; border: 0; border-radius: 0 11px 11px 0; padding: 0; color: #807b80; background: transparent; cursor: pointer; }
 .password-input button:hover { color: var(--orange-dark); background: #fff7f1; }
+
+/* Carpetas de navegación dentro de los módulos */
+.sidebar-folder { display: grid; gap: .2rem; min-width: 0; }
+.sidebar-folder-trigger { width: 100%; min-height: 40px; display: flex; align-items: center; gap: .75rem; border: 0; border-radius: 11px; padding: .55rem .65rem; color: #646064; background: transparent; cursor: pointer; font-size: .84rem; font-weight: 600; text-align: left; }
+.sidebar-folder-trigger:hover { color: var(--charcoal); background: #f8f6f5; }
+.sidebar-folder.active > .sidebar-folder-trigger { color: #bc551b; }
+.sidebar-folder-trigger:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.sidebar-folder-trigger > svg { flex: 0 0 auto; }
+.sidebar-folder-chevron { margin-left: auto; transition: transform .18s ease; }
+.sidebar-folder.open > .sidebar-folder-trigger > .sidebar-folder-chevron { transform: rotate(180deg); }
+.sidebar-folder-items { display: grid; gap: .2rem; margin-left: .5rem; padding-left: .55rem; border-left: 1px solid #eee8e4; }
+.sidebar nav .sidebar-folder-items a { font-size: .81rem; gap: .5rem; }
+.sidebar-folder-items a > svg { flex: 0 0 auto; }
+@media (min-width: 821px) {
+  .sidebar.collapsed .sidebar-folder-trigger { justify-content: center; }
+  .sidebar.collapsed .sidebar-folder-chevron { display: none; }
+  .sidebar.collapsed .sidebar-folder-items { margin-left: 0; padding-left: 0; border-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .sidebar-folder-chevron { transition: none; } }

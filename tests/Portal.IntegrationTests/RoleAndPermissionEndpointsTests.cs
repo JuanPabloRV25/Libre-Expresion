@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Portal.Domain.Permissions;
+using Portal.Domain.Commercial.ProductionOrders;
 using Portal.Infrastructure.Identity;
 using Portal.Infrastructure.Persistence;
 using Portal.Infrastructure.Persistence.Seeding;
@@ -66,9 +67,9 @@ public sealed class RoleAndPermissionEndpointsTests
         var catalogCodes = catalog.EnumerateArray()
             .Select(item => item.GetProperty("code").GetString())
             .ToArray();
-        Assert.Equal(17, catalogCodes.Length);
+        Assert.Equal(PermissionCodes.All.Count + CommercialPermissionCodes.All.Count, catalogCodes.Length);
         Assert.Equal(
-            PermissionCodes.All.Order(StringComparer.Ordinal),
+            PermissionCodes.All.Concat(CommercialPermissionCodes.All).Order(StringComparer.Ordinal),
             catalogCodes.Order(StringComparer.Ordinal));
 
         var createdResponse = await SendWithCsrfAsync(
@@ -184,7 +185,7 @@ public sealed class RoleAndPermissionEndpointsTests
             (await LoginAsync(client, superadmin.Document, SuperadminPassword)).StatusCode);
 
         var roles = await client.GetFromJsonAsync<JsonElement>("/api/roles");
-        var systemRole = roles.EnumerateArray().Single(item => item.GetProperty("isSystem").GetBoolean());
+        var systemRole = roles.EnumerateArray().Single(item => item.GetProperty("name").GetString() == DatabaseSeeder.SuperadminRoleName);
         var systemRoleId = systemRole.GetProperty("id").GetGuid();
 
         var rename = await SendWithCsrfAsync(
@@ -205,7 +206,7 @@ public sealed class RoleAndPermissionEndpointsTests
             client,
             HttpMethod.Put,
             $"/api/roles/{systemRoleId}/permissions",
-            new { permissionCodes = PermissionCodes.All.Take(16).ToArray() });
+            new { permissionCodes = PermissionCodes.All.Concat(CommercialPermissionCodes.All).SkipLast(1).ToArray() });
         Assert.Equal(HttpStatusCode.Conflict, removePermission.StatusCode);
 
         var duplicatePermissions = await SendWithCsrfAsync(
@@ -223,7 +224,7 @@ public sealed class RoleAndPermissionEndpointsTests
         await using var scope = factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.Equal(
-            17,
+            PermissionCodes.All.Count + CommercialPermissionCodes.All.Count,
             await context.RolePermissions.CountAsync(
                 assignment => assignment.RoleId == systemRoleId));
     }

@@ -1,0 +1,180 @@
+name: portal-libre-expresion-prod
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_HTTP_PORTS: "8080"
+  PORTAL_TRUSTED_PROXY_CIDR: ${PORTAL_APPLICATION_CIDR:?}
+  PORTAL_DB_HOST: db
+  PORTAL_DB_NAME: ${POSTGRES_DB:?}
+  PORTAL_DB_USER: ${POSTGRES_USER:?}
+  PORTAL_DB_PASSWORD_FILE: /run/secrets/postgres_password
+  PORTAL_SMTP_PASSWORD_FILE: /run/secrets/gmail_password
+  Authentication__UseDocumentAsTemporaryPassword: "false"
+  DATABASE_SEEDING_ENABLED: "false"
+  AllowedHosts: ${PORTAL_ALLOWED_HOSTS:?}
+  Email__Enabled: "true"
+  Email__Host: smtp.gmail.com
+  Email__Port: "587"
+  Email__UseTls: "true"
+  Email__UseSsl: "false"
+  Email__Username: ${GMAIL_ADDRESS:?}
+  Email__FromAddress: ${GMAIL_ADDRESS:?}
+  Email__FromName: ${GMAIL_FROM_NAME:-Portal Libre Expresión}
+  Email__PortalBaseUrl: ${PORTAL_PUBLIC_URL:?}
+  Email__EnvironmentLabel: PRODUCCIÓN
+
+x-api-secrets: &api-secrets
+  - postgres_password
+  - gmail_password
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - portal_postgres_data:/var/lib/postgresql
+    networks:
+      - database-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 30s
+    logging: *logging
+
+  api:
+    image: portal-libre-expresion-api:${PORTAL_IMAGE_TAG:?}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment: *api-environment
+    secrets: *api-secrets
+    volumes:
+      - portal_api_keys:/home/app/.aspnet/DataProtection-Keys
+    tmpfs:
+      - /tmp
+    read_only: true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - application-network
+      - database-network
+    healthcheck:
+      test: ["CMD", "dotnet", "Portal.Api.dll", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+
+  web:
+    image: portal-libre-expresion-web:${PORTAL_IMAGE_TAG:?}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/frontend.Dockerfile
+      target: runtime
+      args:
+        NGINX_CONFIG: deploy/prod/nginx.conf
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORTAL_HTTP_PORT:-8081}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - application-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *logging
+
+  migrate:
+    profiles: ["tools"]
+    image: portal-libre-expresion-migrate:${PORTAL_IMAGE_TAG:?}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: migrate
+    restart: "no"
+    environment: *api-environment
+    secrets: *api-secrets
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - database-network
+
+  provision:
+    profiles: ["tools"]
+    image: portal-libre-expresion-api:${PORTAL_IMAGE_TAG:?}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: runtime
+    restart: "no"
+    environment:
+      <<: *api-environment
+      PORTAL_OPERATION: provision
+      DATABASE_SEEDING_ENABLED: "true"
+      PORTAL_SUPERADMIN_PASSWORD_FILE: /run/secrets/superadmin_password
+      SUPERADMIN_DOCUMENT: ${SUPERADMIN_DOCUMENT:-}
+      SUPERADMIN_FIRST_NAME: ${SUPERADMIN_FIRST_NAME:-}
+      SUPERADMIN_LAST_NAME: ${SUPERADMIN_LAST_NAME:-}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+    secrets:
+      - postgres_password
+      - gmail_password
+      - superadmin_password
+    volumes:
+      - portal_api_keys:/home/app/.aspnet/DataProtection-Keys
+    tmpfs:
+      - /tmp
+    read_only: true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - database-network
+
+secrets:
+  postgres_password:
+    file: ${PORTAL_DB_PASSWORD_FILE:?}
+  gmail_password:
+    file: ${PORTAL_SMTP_PASSWORD_FILE:?}
+  superadmin_password:
+    file: ${PORTAL_SUPERADMIN_PASSWORD_FILE:-/dev/null}
+
+volumes:
+  portal_postgres_data:
+  portal_api_keys:
+
+networks:
+  application-network:
+    ipam:
+      config:
+        - subnet: ${PORTAL_APPLICATION_CIDR:?}
+  database-network:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${PORTAL_DATABASE_CIDR:?}

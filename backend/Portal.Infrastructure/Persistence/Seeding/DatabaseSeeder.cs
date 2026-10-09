@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using Portal.Domain.Permissions;
+using Portal.Domain.Commercial.ProductionOrders;
 using Portal.Infrastructure.Identity;
 
 namespace Portal.Infrastructure.Persistence.Seeding;
@@ -16,6 +17,8 @@ public sealed class DatabaseSeeder(
     ILogger<DatabaseSeeder> logger)
 {
     public const string SuperadminRoleName = "Superadmin";
+    public const string CommercialAgentRoleName = "Agente Comercial";
+    public const string CommercialAssistantRoleName = "Auxiliar Comercial";
 
     private const string SuperadminRoleDescription =
         "Rol de sistema con privilegios globales de administración del Portal Libre Expresión.";
@@ -39,6 +42,20 @@ public sealed class DatabaseSeeder(
         new(PermissionCodes.RolesAssignPermissions, "roles", "assign_permissions", "Asignar permisos a roles"),
         new(PermissionCodes.PermissionsView, "permissions", "view", "Ver permisos"),
         new(PermissionCodes.AuditView, "audit", "view", "Ver auditoría"),
+        new(CommercialPermissionCodes.OrdersView, "commercial.production_orders", "view", "Ver órdenes de producción"),
+        new(CommercialPermissionCodes.OrdersCreate, "commercial.production_orders", "create", "Crear órdenes de producción"),
+        new(CommercialPermissionCodes.OrdersEditCommercial, "commercial.production_orders", "edit_commercial", "Editar información comercial"),
+        new(CommercialPermissionCodes.OrdersSubmit, "commercial.production_orders", "submit", "Enviar órdenes a Producción"),
+        new(CommercialPermissionCodes.OrdersDuplicate, "commercial.production_orders", "duplicate", "Duplicar órdenes de producción"),
+        new(CommercialPermissionCodes.OrdersViewProduction, "commercial.production_orders", "view_production", "Ver información productiva"),
+        new(CommercialPermissionCodes.OrdersSubmitForReview, "commercial.production_orders", "submit_for_review", "Enviar paquete a revisión comercial"),
+        new(CommercialPermissionCodes.OrdersReview, "commercial.production_orders", "review", "Revisar y devolver paquetes comerciales"),
+        new(CommercialPermissionCodes.OrdersEditProduction, "commercial.production_orders", "edit_production", "Diligenciar información productiva"),
+        new(CommercialPermissionCodes.OrdersComplete, "commercial.production_orders", "complete", "Finalizar órdenes de producción"),
+        new(CommercialPermissionCodes.OrdersManage, "commercial.production_orders", "manage", "Administrar todas las órdenes"),
+        new(Portal.Domain.Commercial.Reports.ReportPermissionCodes.View, "commercial.reports", "view", "Ver reportes comerciales"),
+        new(Portal.Domain.Commercial.Reports.ReportPermissionCodes.Edit, "commercial.reports", "edit", "Preparar y revisar reportes comerciales"),
+        new(Portal.Domain.Commercial.Reports.ReportPermissionCodes.Export, "commercial.reports", "export", "Descargar reportes comerciales"),
     ];
 
     public async Task SeedAsync(
@@ -64,6 +81,8 @@ public sealed class DatabaseSeeder(
                 permissions,
                 cancellationToken);
 
+            await EnsureCommercialRolesAsync(permissions, cancellationToken);
+
             var superadminUser = await EnsureSuperadminUserAsync(settings);
 
             await EnsureSuperadminUserRoleAsync(
@@ -77,7 +96,7 @@ public sealed class DatabaseSeeder(
             }
 
             logger.LogInformation(
-                "Database seeding completed with {PermissionCount} Phase 1 permissions.",
+                "Database seeding completed with {PermissionCount} official permissions.",
                 permissions.Count);
         }
         catch
@@ -101,7 +120,7 @@ public sealed class DatabaseSeeder(
     private async Task<IReadOnlyList<Permission>> SynchronizePermissionsAsync(
         CancellationToken cancellationToken)
     {
-        var codes = PermissionCodes.All.ToArray();
+        var codes = PermissionCodes.All.Concat(CommercialPermissionCodes.All).ToArray();
         var permissionsByCode = await dbContext.Permissions
             .Where(permission => codes.Contains(permission.Code))
             .ToDictionaryAsync(permission => permission.Code, StringComparer.Ordinal, cancellationToken);
@@ -231,6 +250,109 @@ public sealed class DatabaseSeeder(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task EnsureCommercialRolesAsync(
+        IReadOnlyCollection<Permission> permissions,
+        CancellationToken cancellationToken)
+    {
+        var agent = await roleManager.FindByNameAsync(CommercialAgentRoleName);
+        var legacy = await roleManager.FindByNameAsync("Comercial");
+        if (agent is not null && legacy is not null)
+        {
+            throw new InvalidOperationException(
+                "Both 'Comercial' and 'Agente Comercial' roles exist. Review memberships before seeding; roles will not be merged automatically.");
+        }
+
+        if (agent is null && legacy is not null)
+        {
+            legacy.Name = CommercialAgentRoleName;
+            legacy.Description = "Agente responsable de importar cotizaciones y preparar paquetes comerciales.";
+            legacy.IsActive = true;
+            legacy.IsSystem = true;
+            legacy.UpdatedAt = timeProvider.GetUtcNow();
+            EnsureIdentitySucceeded(await roleManager.UpdateAsync(legacy), "rename the Comercial role");
+            agent = legacy;
+        }
+
+        agent ??= await EnsureSystemRoleAsync(
+            CommercialAgentRoleName,
+            "Agente responsable de importar cotizaciones y preparar paquetes comerciales.");
+        var assistant = await EnsureSystemRoleAsync(
+            CommercialAssistantRoleName,
+            "Única responsable de revisar el paquete comercial antes de enviarlo a Producción.");
+
+        await SynchronizeRolePermissionsAsync(agent, permissions,
+        [
+            CommercialPermissionCodes.OrdersView,
+            CommercialPermissionCodes.OrdersCreate,
+            CommercialPermissionCodes.OrdersEditCommercial,
+            CommercialPermissionCodes.OrdersDuplicate,
+            CommercialPermissionCodes.OrdersViewProduction,
+            CommercialPermissionCodes.OrdersSubmitForReview,
+        ], cancellationToken);
+        await SynchronizeRolePermissionsAsync(assistant, permissions,
+        [
+            CommercialPermissionCodes.OrdersView,
+            CommercialPermissionCodes.OrdersViewProduction,
+            CommercialPermissionCodes.OrdersReview,
+            CommercialPermissionCodes.OrdersSubmit,
+            Portal.Domain.Commercial.Reports.ReportPermissionCodes.View,
+            Portal.Domain.Commercial.Reports.ReportPermissionCodes.Edit,
+            Portal.Domain.Commercial.Reports.ReportPermissionCodes.Export,
+        ], cancellationToken);
+    }
+
+    private async Task<ApplicationRole> EnsureSystemRoleAsync(string name, string description)
+    {
+        var role = await roleManager.FindByNameAsync(name);
+        var now = timeProvider.GetUtcNow();
+        if (role is null)
+        {
+            role = new ApplicationRole
+            {
+                Id = Guid.NewGuid(), Name = name, Description = description,
+                IsActive = true, IsSystem = true, CreatedAt = now, UpdatedAt = now,
+            };
+            EnsureIdentitySucceeded(await roleManager.CreateAsync(role), $"create the {name} role");
+            return role;
+        }
+
+        role.Description = description;
+        role.IsActive = true;
+        role.IsSystem = true;
+        role.UpdatedAt = now;
+        EnsureIdentitySucceeded(await roleManager.UpdateAsync(role), $"update the {name} role");
+        return role;
+    }
+
+    private async Task SynchronizeRolePermissionsAsync(
+        ApplicationRole role,
+        IReadOnlyCollection<Permission> permissions,
+        IReadOnlyCollection<string> desiredCodes,
+        CancellationToken cancellationToken)
+    {
+        var commercialPermissionIds = permissions
+            .Where(permission => permission.Code.StartsWith("commercial.", StringComparison.Ordinal))
+            .Select(permission => permission.Id)
+            .ToHashSet();
+        var desiredIds = permissions.Where(permission => desiredCodes.Contains(permission.Code)).Select(permission => permission.Id).ToHashSet();
+        var existing = await dbContext.RolePermissions
+            .Where(item => item.RoleId == role.Id && commercialPermissionIds.Contains(item.PermissionId))
+            .ToArrayAsync(cancellationToken);
+        dbContext.RolePermissions.RemoveRange(existing.Where(item => !desiredIds.Contains(item.PermissionId)));
+        var existingIds = existing.Select(item => item.PermissionId).ToHashSet();
+        foreach (var permissionId in desiredIds.Where(id => !existingIds.Contains(id)))
+        {
+            dbContext.RolePermissions.Add(new RolePermission
+            {
+                RoleId = role.Id,
+                PermissionId = permissionId,
+                AssignedAt = timeProvider.GetUtcNow(),
+                AssignedByUserId = null,
+            });
+        }
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<ApplicationUser> EnsureSuperadminUserAsync(
         DatabaseSeedSettings settings)
     {
@@ -283,12 +405,25 @@ public sealed class DatabaseSeeder(
             UpdatedAt = now,
         };
 
-        // Controlled bootstrap exception: Identity hashes the document-based temporary
-        // credential without weakening the validators used for definitive passwords.
-        TemporaryCredential.SetDocumentBasedPassword(
-            user,
-            document,
-            passwordHasher);
+        if (settings.InitialPassword is not null)
+        {
+            if (settings.InitialPassword.Length < 16
+                || string.Equals(settings.InitialPassword, document, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "The initial Superadmin password must be at least 16 characters and differ from the document.");
+            }
+
+            user.PasswordHash = passwordHasher.HashPassword(user, settings.InitialPassword);
+        }
+        else
+        {
+            // Legacy DEV bootstrap is preserved for existing local workflows.
+            TemporaryCredential.SetDocumentBasedPassword(
+                user,
+                document,
+                passwordHasher);
+        }
 
         EnsureIdentitySucceeded(
             await userManager.CreateAsync(user),

@@ -1,0 +1,147 @@
+name: portal-libre-expresion-dev
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_HTTP_PORTS: "8080"
+  PORTAL_TRUSTED_PROXY_CIDR: 172.29.10.0/24
+  ConnectionStrings__PortalDb: Host=db;Port=5432;Database=${POSTGRES_DB:?};Username=${POSTGRES_USER:?};Password=${POSTGRES_PASSWORD:?}
+  Authentication__UseDocumentAsTemporaryPassword: ${AUTH_USE_DOCUMENT_TEMPORARY_PASSWORD:-false}
+  DATABASE_SEEDING_ENABLED: "false"
+  Email__Enabled: ${Email__Enabled:-false}
+  Email__Host: ${Email__Host:-smtp.gmail.com}
+  Email__Port: ${Email__Port:-587}
+  Email__UseTls: ${Email__UseTls:-true}
+  Email__UseSsl: ${Email__UseSsl:-false}
+  Email__Username: ${Email__Username:-}
+  Email__Password: ${Email__Password:-}
+  Email__FromName: ${Email__FromName:-Portal Libre Expresión}
+  Email__FromAddress: ${Email__FromAddress:-}
+  Email__PortalBaseUrl: ${Email__PortalBaseUrl:-http://127.0.0.1:5173}
+  Email__EnvironmentLabel: ${Email__EnvironmentLabel:-DESARROLLO}
+  CommercialDocuments__RootPath: /var/lib/portal/documents
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - portal_postgres_data:/var/lib/postgresql
+    networks:
+      - portal-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 30s
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment: *api-environment
+    expose:
+      - "8080"
+    volumes:
+      - portal_api_keys:/home/app/.aspnet/DataProtection-Keys
+      - portal_commercial_documents:/var/lib/portal/documents
+    tmpfs:
+      - /tmp
+    read_only: true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - portal-network
+    healthcheck:
+      test: ["CMD", "dotnet", "Portal.Api.dll", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/frontend.Dockerfile
+      target: runtime
+      args:
+        NGINX_CONFIG: deploy/dev/nginx.conf
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - portal-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  migrate:
+    profiles: ["tools"]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: migrate
+    restart: "no"
+    environment: *api-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - portal-network
+
+  provision:
+    profiles: ["tools"]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/backend.Dockerfile
+      target: runtime
+    restart: "no"
+    environment:
+      <<: *api-environment
+      PORTAL_OPERATION: provision
+      DATABASE_SEEDING_ENABLED: "true"
+      SUPERADMIN_DOCUMENT: ${SUPERADMIN_DOCUMENT:-}
+      SUPERADMIN_FIRST_NAME: ${SUPERADMIN_FIRST_NAME:-}
+      SUPERADMIN_LAST_NAME: ${SUPERADMIN_LAST_NAME:-}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-}
+    volumes:
+      - portal_api_keys:/home/app/.aspnet/DataProtection-Keys
+    tmpfs:
+      - /tmp
+    read_only: true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - portal-network
+
+volumes:
+  portal_postgres_data:
+    external: true
+    name: portal-dev-pgdata
+  portal_api_keys:
+    name: portal-libre-expresion-dev-api-keys
+  portal_commercial_documents:
+    name: portal-libre-expresion-dev-commercial-documents
+
+networks:
+  portal-network:
+    name: portal-libre-expresion-dev-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.10.0/24

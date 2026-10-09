@@ -50,12 +50,41 @@ export async function postJson<T>(path: string, body: unknown = {}): Promise<T> 
   return mutateJson<T>('POST', path, body)
 }
 
+export async function postBlob(path: string, body: unknown): Promise<Blob> {
+  const token = await getAntiforgeryToken()
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token }, body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as { code?: string; message?: string } | null
+    throw new ApiError(response.status, error?.code, error?.message)
+  }
+  return response.blob()
+}
+
 export async function putJson<T>(path: string, body: unknown = {}): Promise<T> {
   return mutateJson<T>('PUT', path, body)
 }
 
 export async function patchJson<T>(path: string, body: unknown = {}): Promise<T> {
   return mutateJson<T>('PATCH', path, body)
+}
+
+export async function mutateForm<T>(method: 'POST' | 'PUT', path: string, body: FormData): Promise<T> {
+  const token = await getAntiforgeryToken()
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method, credentials: 'include', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': token }, body,
+  })
+  return parseResponse<T>(response)
+}
+
+export async function deleteJson<T>(path: string): Promise<T> {
+  const token = await getAntiforgeryToken()
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'DELETE', credentials: 'include', headers: { Accept: 'application/json', 'X-XSRF-TOKEN': token },
+  })
+  return parseResponse<T>(response)
 }
 
 async function mutateJson<T>(method: 'POST' | 'PUT' | 'PATCH', path: string, body: unknown): Promise<T> {

@@ -201,6 +201,816 @@ namespace Portal.Infrastructure.Persistence.Migrations
                     b.ToTable("AuditEvents", (string)null);
                 });
 
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.CommercialNotificationOutbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("NotificationType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.HasIndex("Status", "NextAttemptAt");
+
+                    b.ToTable("CommercialNotificationOutbox", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdditionalSpecifications")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("CityCountry")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("ClientName")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("ClientPurchaseOrder")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ClosedSize")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid>("CommercialOwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<long>("Consecutive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Consecutive"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CurrentAssigneeUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerOrderNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("CuttingManager")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("DeliveryAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateOnly?>("DeliveryDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DesignApplicability")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<decimal?>("DieConforming")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("DieCutManager")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<DateTimeOffset?>("DieCutStart")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("DieMachine")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<decimal?>("DieNonConforming")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("DieNumber")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<decimal?>("DieTotalProcessed")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("DieType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<DateOnly?>("DispatchDay")
+                        .HasColumnType("date");
+
+                    b.Property<string>("FinishingManager")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<DateTimeOffset?>("FinishingStart")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<decimal?>("GlueConforming")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("GlueNonConforming")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("GlueTotalProcessed")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("GlueType")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<string>("GluingManager")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<DateTimeOffset?>("GluingStart")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("LastUpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LegalContractRequirements")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateOnly?>("MaterialCutDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Observations")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<string>("OpenSize")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid>("OperationGroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("PartialDelivery")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("PartialDeliveryQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateOnly?>("PlanningDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PlanningManager")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<bool>("PrintColorProof")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("PrintStartShift1")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<DateTimeOffset?>("PrintStartShift2")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("PrintingManagerShift1")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("PrintingManagerShift2")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("ProductName")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<Guid?>("ProductionOwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ProductionReceivedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("PurchaseOrderApplicability")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool?>("QualityApproved")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("QualityCertificateMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("QualityNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTimeOffset?>("QualityReviewDate")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("QualityReviewer")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("QuotationNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ReceptionContact")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("ReceptionSchedule")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<Guid?>("ReviewOwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ReviewReturnedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<DateTimeOffset?>("ReviewSubmittedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid?>("SourceOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("TechnicalSheetMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<decimal?>("UnitValue")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<string>("WorkType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientName");
+
+                    b.HasIndex("CommercialOwnerUserId");
+
+                    b.HasIndex("Consecutive")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CurrentAssigneeUserId");
+
+                    b.HasIndex("CustomerOrderNumber");
+
+                    b.HasIndex("LastUpdatedByUserId");
+
+                    b.HasIndex("OperationGroupId");
+
+                    b.HasIndex("ProductionOwnerUserId");
+
+                    b.HasIndex("ReviewOwnerUserId");
+
+                    b.HasIndex("SourceOrderId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("CommercialProductionOrders", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Applicability")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<DateTimeOffset?>("SupersededAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("ProductionOrderId", "Type", "IsActive");
+
+                    b.ToTable("CommercialProductionOrderDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderFinish", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Back")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("ConformingQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("Front")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("NonConformingQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Reserve")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Specification")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<decimal?>("TotalProcessed")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductionOrderId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("CommercialProductionOrderFinishes", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExtractedDataJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("ImportedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImporterVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TemplateFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("WarningsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportedByUserId");
+
+                    b.HasIndex("ProductionOrderId");
+
+                    b.HasIndex("SourceDocumentId");
+
+                    b.ToTable("CommercialProductionOrderImports", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderMaterial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Caliber")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<decimal?>("ConformingQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("CutSize")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("FitPerFraction")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("FractionPerSheet")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Material")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<decimal?>("NonConformingQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("OptionalSpecifications")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("SheetQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("SheetSize")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal?>("TotalCutQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Weight")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductionOrderId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("CommercialProductionOrderMaterials", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderPrintLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ConformingQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Inks")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("Machine")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<string>("Mounting")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<decimal?>("NonConformingQuantity")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Process")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("Product")
+                        .HasMaxLength(180)
+                        .HasColumnType("varchar(180)");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ShotsToProcess")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Specials")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductionOrderId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("CommercialProductionOrderPrintLines", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<Guid>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("ProductionOrderId", "OccurredAt");
+
+                    b.ToTable("CommercialProductionOrderStatusHistory", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.Reports.CommercialReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("LastExportedVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId", "UpdatedAt");
+
+                    b.ToTable("CommercialReports", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.Reports.CommercialReportSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<byte[]>("OriginalBytes")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind", "Sha256")
+                        .IsUnique()
+                        .HasFilter("\"Kind\" = 'ops'");
+
+                    b.HasIndex("ReportId", "Sha256");
+
+                    b.HasIndex("OwnerUserId", "Kind", "Sha256")
+                        .IsUnique();
+
+                    b.ToTable("CommercialReportSources", (string)null);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.Reports.ProductionOrderReportRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CapturedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CapturedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Client")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DataJson")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("OrderVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Product")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ProductionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("SourceRow")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number");
+
+                    b.HasIndex("ProductionOrderId", "OrderVersion")
+                        .IsUnique();
+
+                    b.HasIndex("SourceId", "SourceRow")
+                        .IsUnique();
+
+                    b.ToTable("CommercialOpReportRecords", (string)null);
+                });
+
             modelBuilder.Entity("Portal.Domain.Permissions.Permission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -499,6 +1309,164 @@ namespace Portal.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.CommercialNotificationOutbox", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", null)
+                        .WithMany()
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CommercialOwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CurrentAssigneeUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("LastUpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ProductionOwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewOwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", null)
+                        .WithMany()
+                        .HasForeignKey("SourceOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderDocument", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", null)
+                        .WithMany("Documents")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderFinish", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", "ProductionOrder")
+                        .WithMany("Finishes")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderImport", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", null)
+                        .WithMany("Imports")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrderDocument", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderMaterial", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", "ProductionOrder")
+                        .WithMany("Materials")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderPrintLine", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", "ProductionOrder")
+                        .WithMany("PrintLines")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrderStatusHistory", b =>
+                {
+                    b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", "ProductionOrder")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("ProductionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductionOrder");
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.Reports.CommercialReportSource", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.Reports.CommercialReport", null)
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.Reports.ProductionOrderReportRecord", b =>
+                {
+                    b.HasOne("Portal.Domain.Commercial.Reports.CommercialReportSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("Portal.Domain.Permissions.RolePermission", b =>
                 {
                     b.HasOne("Portal.Infrastructure.Identity.ApplicationUser", null)
@@ -545,6 +1513,21 @@ namespace Portal.Infrastructure.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Portal.Domain.Commercial.ProductionOrders.ProductionOrder", b =>
+                {
+                    b.Navigation("Documents");
+
+                    b.Navigation("Finishes");
+
+                    b.Navigation("Imports");
+
+                    b.Navigation("Materials");
+
+                    b.Navigation("PrintLines");
+
+                    b.Navigation("StatusHistory");
                 });
 #pragma warning restore 612, 618
         }

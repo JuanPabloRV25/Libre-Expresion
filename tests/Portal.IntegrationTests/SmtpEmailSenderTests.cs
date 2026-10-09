@@ -15,7 +15,7 @@ public sealed class SmtpEmailSenderTests
         var settings = new EmailOptions
         {
             Enabled = true,
-            Host = "mailpit",
+            Host = "smtp.example.test",
             Port = 1025,
             FromName = "Portal Libre Expresión",
             FromAddress = "notificaciones@libreexpresion.test",
@@ -103,7 +103,7 @@ public sealed class SmtpEmailSenderTests
         string password = "") => new()
         {
             Enabled = true,
-            Host = "mailpit",
+            Host = "smtp.example.test",
             Port = 1025,
             UseTls = useTls,
             UseSsl = useSsl,

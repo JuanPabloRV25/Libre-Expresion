@@ -19,6 +19,14 @@ import AuditView from '../views/AuditView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ChangePasswordView from '../views/ChangePasswordView.vue'
 import UnauthorizedView from '../views/UnauthorizedView.vue'
+import CommercialOverviewView from '../features/commercial/production-orders/CommercialOverviewView.vue'
+import ProductionOrdersView from '../features/commercial/production-orders/ProductionOrdersView.vue'
+import ProductionOrderFormView from '../features/commercial/production-orders/ProductionOrderFormView.vue'
+import ProductionOrderDetailView from '../features/commercial/production-orders/ProductionOrderDetailView.vue'
+import { SHOW_COMMERCIAL_SUMMARY } from '../features/commercial/featureFlags'
+import ReportsView from '../features/commercial/reports/ReportsView.vue'
+import ReportRouteView from '../features/commercial/reports/ReportRouteView.vue'
+import OpRegisterView from '../features/commercial/reports/OpRegisterView.vue'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -26,7 +34,6 @@ declare module 'vue-router' {
     permission?: string
     publicPasswordReset?: boolean
     title?: string
-    hidden?: boolean
   }
 }
 
@@ -39,6 +46,8 @@ export const router = createRouter({
     { path: '/password-updated', component: PasswordUpdatedView, meta: { title: 'Contraseña actualizada' } },
     { path: '/home', component: HomeView, meta: { requiresAuth: true, title: 'Inicio' } },
     { path: '/reset-password', component: ResetPasswordView, meta: { publicPasswordReset: true, title: 'Establecer contraseña' } },
+
+    // Phase 1 · Administration
     { path: '/users', component: UsersView, meta: { requiresAuth: true, permission: 'users.view', title: 'Usuarios' } },
     { path: '/users/new', component: UserFormView, meta: { requiresAuth: true, permission: 'users.create', title: 'Crear usuario' } },
     { path: '/users/:id', component: UserDetailView, meta: { requiresAuth: true, permission: 'users.view', title: 'Detalle de usuario' } },
@@ -50,7 +59,25 @@ export const router = createRouter({
     { path: '/roles/:id/edit', component: RoleFormView, meta: { requiresAuth: true, permission: 'roles.edit', title: 'Editar rol' } },
     { path: '/roles/:id/permissions', component: RolePermissionsView, meta: { requiresAuth: true, permission: 'roles.assign_permissions', title: 'Matriz de permisos' } },
     { path: '/permissions', component: PermissionsView, meta: { requiresAuth: true, permission: 'permissions.view', title: 'Permisos' } },
-    { path: '/audit', component: AuditView, meta: { requiresAuth: true, permission: 'audit.view', title: 'Auditoría', hidden: true } },
+    { path: '/audit', component: AuditView, meta: { requiresAuth: true, permission: 'audit.view', title: 'Auditoría' } },
+
+    // Phase 2 · Commercial. Kept in its own feature and route namespace.
+    {
+      path: '/commercial',
+      ...(SHOW_COMMERCIAL_SUMMARY
+        ? { component: CommercialOverviewView }
+        : { redirect: '/commercial/production-orders' }),
+      meta: { requiresAuth: true, permission: 'commercial.production_orders.view', title: 'Comercial' },
+    },
+    { path: '/commercial/production-orders', component: ProductionOrdersView, meta: { requiresAuth: true, permission: 'commercial.production_orders.view', title: 'Órdenes de producción' } },
+    { path: '/commercial/reports', redirect: '/commercial/reports/monthly', meta: { requiresAuth: true, permission: 'commercial.reports.view', title: 'Reportes' } },
+    { path: '/commercial/reports/monthly', component: ReportsView, meta: { requiresAuth: true, permission: 'commercial.reports.view', title: 'Informe Mensual' } },
+    { path: '/commercial/reports/ops', component: OpRegisterView, meta: { requiresAuth: true, permission: 'commercial.reports.view', title: 'Informe OPs' } },
+    { path: '/commercial/reports/ventas/:id', component: ReportRouteView, meta: { requiresAuth: true, permission: 'commercial.reports.view', title: 'Informe Mensual' } },
+    { path: '/commercial/production-orders/new', component: ProductionOrderFormView, meta: { requiresAuth: true, permission: 'commercial.production_orders.create', title: 'Nueva orden de producción' } },
+    { path: '/commercial/production-orders/:id/edit', component: ProductionOrderFormView, meta: { requiresAuth: true, permission: 'commercial.production_orders.edit_commercial', title: 'Editar orden de producción' } },
+    { path: '/commercial/production-orders/:id', component: ProductionOrderDetailView, meta: { requiresAuth: true, permission: 'commercial.production_orders.view', title: 'Orden de producción' } },
+
     { path: '/profile', component: ProfileView, meta: { requiresAuth: true, title: 'Mi perfil' } },
     { path: '/profile/change-password', component: ChangePasswordView, meta: { requiresAuth: true, title: 'Cambiar contraseña' } },
     { path: '/unauthorized', component: UnauthorizedView, meta: { requiresAuth: true, title: 'Acceso no autorizado' } },
@@ -62,7 +89,6 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   await auth.initialize()
   document.title = `${to.meta.title ?? 'Portal'} · Portal Libre Expresión`
-  if (to.meta.hidden) return '/home'
   return resolveAuthNavigation(to.path, to.meta, {
     isAuthenticated: auth.isAuthenticated,
     mustChangePassword: auth.currentUser?.mustChangePassword ?? false,

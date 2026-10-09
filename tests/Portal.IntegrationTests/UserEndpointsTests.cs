@@ -77,7 +77,7 @@ public sealed class UserEndpointsTests
         await using var scope = factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var superadminRoleId = await context.Roles
-            .Where(role => role.IsSystem)
+            .Where(role => role.Name == DatabaseSeeder.SuperadminRoleName)
             .Select(role => role.Id)
             .SingleAsync();
 

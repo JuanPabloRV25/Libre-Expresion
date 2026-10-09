@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Portal.Application.Permissions;
 using Portal.Domain.Permissions;
+using Portal.Domain.Commercial.ProductionOrders;
 using Portal.Infrastructure.Persistence;
 
 namespace Portal.Infrastructure.Permissions;
@@ -11,7 +12,7 @@ public sealed class PermissionService(ApplicationDbContext dbContext)
     public async Task<IReadOnlyList<PermissionDto>> ListAsync(
         CancellationToken cancellationToken = default)
     {
-        var officialCodes = PermissionCodes.All.ToArray();
+        var officialCodes = PermissionCodes.All.Concat(CommercialPermissionCodes.All).ToArray();
         return await dbContext.Permissions
             .AsNoTracking()
             .Where(permission => officialCodes.Contains(permission.Code))

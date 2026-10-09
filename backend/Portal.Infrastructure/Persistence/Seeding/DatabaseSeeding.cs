@@ -33,11 +33,25 @@ public static class DatabaseSeeding
         await using var scope = services.CreateAsyncScope();
         var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
 
+        string? initialPassword = null;
+        var passwordFile = configuration["PORTAL_SUPERADMIN_PASSWORD_FILE"];
+        if (!string.IsNullOrWhiteSpace(passwordFile))
+        {
+            if (!Path.IsPathFullyQualified(passwordFile))
+            {
+                throw new InvalidOperationException(
+                    "PORTAL_SUPERADMIN_PASSWORD_FILE must be an absolute path.");
+            }
+
+            initialPassword = File.ReadAllText(passwordFile).TrimEnd('\r', '\n');
+        }
+
         var settings = new DatabaseSeedSettings(
             configuration["SUPERADMIN_DOCUMENT"],
             configuration["SUPERADMIN_FIRST_NAME"],
             configuration["SUPERADMIN_LAST_NAME"],
-            configuration["SUPERADMIN_EMAIL"]);
+            configuration["SUPERADMIN_EMAIL"],
+            initialPassword);
 
         await seeder.SeedAsync(settings, cancellationToken);
     }

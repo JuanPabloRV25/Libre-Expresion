@@ -1,0 +1,67 @@
+.report-excel-preview { min-width:0; max-width:100%; margin:20px 0; padding:18px; border:1px solid #dfe7e1; border-radius:12px; background:#fff; color:#344054; }
+.report-excel-preview-heading { display:flex; align-items:center; gap:12px; min-width:0; }
+.report-excel-preview-icon { display:grid; place-items:center; width:44px; height:44px; flex-shrink:0; border-radius:10px; background:#eaf5ee; color:#267653; }
+.report-excel-preview-heading > div { min-width:0; }
+.report-excel-preview-heading h3 { margin:0 0 4px; font-size:17px; line-height:1.4; font-weight:600; color:#24573e; }
+.report-excel-preview-heading p, .report-excel-preview-note { margin:0; color:#667085; font-size:13px; line-height:1.55; overflow-wrap:anywhere; }
+.report-excel-preview-note { margin:12px 0 16px; }
+.report-excel-preview-scroll { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; border:1px solid #e1e7e3; border-radius:10px; }
+.report-excel-preview-scroll:focus-visible { outline:2px solid #377859; outline-offset:3px; }
+.report-excel-preview-table { width:100%; min-width:1500px; border-collapse:separate; border-spacing:0; table-layout:fixed; text-align:left; font-size:13px; line-height:1.55; }
+.report-excel-preview-table th { padding:10px 12px 12px; background:#f0f6f2; color:#365342; font-size:11px; font-weight:600; border-right:1px solid #e0e8e2; border-bottom:1px solid #dce6df; overflow-wrap:anywhere; }
+.report-excel-column-letter { display:block; margin-bottom:6px; color:#71847a; font-size:11px; font-weight:500; }
+.report-excel-preview-table td { padding:14px 12px; vertical-align:top; border-right:1px solid #edf0ed; border-bottom:1px solid #e6ebe7; overflow-wrap:anywhere; }
+.report-excel-preview-table th:last-child, .report-excel-preview-table td:last-child { border-right:0; }
+.report-excel-preview-table tr:last-child td { border-bottom:0; }
+.report-excel-preview-table tbody tr:nth-child(even) td { background:#fafcfb; }
+.report-excel-preview-table tbody tr.is-active td { background:#fff7ed; border-top:1px solid #efceb5; border-bottom:1px solid #efceb5; }
+.report-excel-preview-table tbody tr.is-active td:first-child { box-shadow:inset 3px 0 #c2410c; }
+.report-excel-preview-table th:first-child, .report-excel-preview-table td:first-child { position:sticky; left:0; border-right-color:#d5dfd8; }
+.report-excel-preview-table th:first-child { z-index:2; background:#f0f6f2; }
+.report-excel-preview-table td:first-child { z-index:1; background:#fff; }
+.report-excel-preview-table tbody tr:nth-child(even) td:first-child { background:#fafcfb; }
+.report-excel-preview-table tbody tr.is-active td:first-child { background:#fff7ed; }
+.report-excel-col-op { width:130px; }.report-excel-col-factura { width:110px; }.report-excel-col-number { width:100px; }.report-excel-col-date { width:105px; }.report-excel-col-client { width:170px; }.report-excel-col-term { width:85px; }.report-excel-col-amount { width:135px; }.report-excel-col-details { width:330px; }.report-excel-col-line { width:130px; }.report-excel-col-seller { width:150px; }
+.report-excel-row-number { display:block; margin-bottom:6px; font-size:11px; color:#667085; }.report-excel-op-value { display:block; font-weight:600; }
+.report-excel-active-label { display:inline-flex; max-width:100%; margin-top:8px; padding:4px 7px; border-radius:6px; background:#fff0e1; color:#9e400f; font-size:11px; font-weight:600; line-height:1.4; }
+.report-excel-amount { font-variant-numeric:tabular-nums; }
+.report-excel-detail-item { display:block; white-space:pre-wrap; overflow-wrap:anywhere; }
+.report-excel-detail-item + .report-excel-detail-item { margin-top:10px; padding-top:10px; border-top:1px solid #e4e9e5; }
+.report-excel-open { display:flex; justify-content:center; align-items:center; width:100%; min-height:40px; margin-top:14px; padding:8px 10px; border:1px solid #e3c7b6; border-radius:8px; background:#fff; color:#a63b0b; font:inherit; font-size:12px; font-weight:600; line-height:1.4; cursor:pointer; }
+.report-excel-open:hover:not(:disabled) { background:#fff0e5; border-color:#dba381; }.report-excel-open:focus-visible { outline:2px solid #c2410c; outline-offset:3px; }.report-excel-open:disabled { opacity:.55; cursor:default; }
+.report-excel-preview-cards { display:none; }
+.report-excel-preview-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.report-excel-preview-empty { margin:0; padding:20px 14px; border:1px dashed #dce4de; border-radius:10px; background:#f9fbfa; color:#667085; font-size:14px; line-height:1.55; }
+@media(max-width:760px) {
+  .report-excel-preview { padding:14px; }
+  .report-excel-preview-scroll { display:none; }
+  .report-excel-table-hint { display:none; }
+  .report-excel-preview-cards { display:grid; gap:14px; min-width:0; }
+  .report-excel-preview-card { min-width:0; border:1px solid #e0e7e2; border-radius:10px; background:#fafcfb; }
+  .report-excel-preview-card.is-active { border-color:#e6b997; background:#fffaf4; box-shadow:inset 3px 0 #c2410c; }
+  .report-excel-preview-card > summary.report-excel-card-summary { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; min-height:44px; padding:14px; border-radius:10px; cursor:pointer; list-style:none; }
+  .report-excel-card-summary::-webkit-details-marker { display:none; }
+  .report-excel-card-summary:focus-visible { outline:2px solid #c2410c; outline-offset:3px; }
+  .report-excel-card-identifiers { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; font-size:12px; font-weight:400; line-height:1.5; overflow-wrap:anywhere; }
+  .report-excel-card-identifiers strong { color:#344054; font-size:13px; font-weight:600; }
+  .report-excel-card-identifiers > span:not(.report-excel-active-label) { color:#667085; }
+  .report-excel-card-identifiers .report-excel-active-label { margin:0; }
+  .report-excel-card-chevron { flex-shrink:0; color:#667085; transition:transform .15s ease; }
+  .report-excel-preview-card[open] .report-excel-card-chevron { transform:rotate(180deg); }
+  .report-excel-card-content { margin:0 14px 14px; padding-top:1px; border-top:1px solid #e5e9e6; }
+  .report-excel-preview-card dl { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px 16px; margin:16px 0 0; }
+  .report-excel-card-field { min-width:0; }
+  .report-excel-card-field:nth-child(5), .report-excel-card-field:nth-child(8), .report-excel-card-field:nth-child(9), .report-excel-card-field:nth-child(10) { grid-column:1/-1; }
+  .report-excel-card-field dt { margin:0 0 5px; color:#667085; font-size:12px; font-weight:600; line-height:1.5; overflow-wrap:anywhere; }
+  .report-excel-card-field dd { margin:0; color:#344054; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+  .report-excel-preview-card .report-excel-open { min-height:44px; font-size:13px; }
+  .report-excel-preview .reports-pagination-buttons { max-width:100%; flex-wrap:wrap; justify-content:center; }
+}
+@media(max-width:380px) {
+  .report-excel-preview { padding:10px; }
+  .report-excel-preview-heading { gap:9px; }
+  .report-excel-preview-icon { width:36px; height:36px; border-radius:8px; }
+  .report-excel-preview-card > summary.report-excel-card-summary { padding:12px; }
+  .report-excel-card-content { margin:0 12px 12px; }
+  .report-excel-preview-card dl { gap:12px; }
+}
